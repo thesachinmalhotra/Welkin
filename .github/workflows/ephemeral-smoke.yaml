@@ -1,0 +1,89 @@
+name: ephemeral-smoke
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-smoke:
+    runs-on: ubuntu-latest
+    env:
+      OPENMETER_TOKEN: ${{ secrets.OPENMETER_TOKEN }}
+      ARCHIVE_S3_ENDPOINT: ${{ secrets.ARCHIVE_S3_ENDPOINT }}
+      ARCHIVE_S3_BUCKET: ${{ secrets.ARCHIVE_S3_BUCKET }}
+      ARCHIVE_S3_REGION: ${{ secrets.ARCHIVE_S3_REGION }}
+      ARCHIVE_S3_ACCESS_KEY_ID: ${{ secrets.ARCHIVE_S3_ACCESS_KEY_ID }}
+      ARCHIVE_S3_SECRET_ACCESS_KEY: ${{ secrets.ARCHIVE_S3_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install tooling
+        run: |
+          go install github.com/stefanprodan/timoni/cmd/timoni@latest
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+      - name: Create ephemeral cluster
+        run: kind create cluster --name welkin-ci
+
+      - name: Render runtime values
+        run: |
+          cat > /tmp/welkin.runtime.cue <<EOF_RUNTIME
+          package main
+
+          runtime: {
+            namespace: "welkin-system"
+            openmeter: {
+              token: "${OPENMETER_TOKEN}"
+            }
+            archive: {
+              endpoint:       "${ARCHIVE_S3_ENDPOINT}"
+              bucket:         "${ARCHIVE_S3_BUCKET}"
+              region:         "${ARCHIVE_S3_REGION}"
+              accessKeyID:    "${ARCHIVE_S3_ACCESS_KEY_ID}"
+              secretAccessKey:"${ARCHIVE_S3_SECRET_ACCESS_KEY}"
+            }
+          }
+          EOF_RUNTIME
+
+      - name: Apply Welkin bundle
+        run: ~/go/bin/timoni bundle apply -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue -f /tmp/welkin.runtime.cue --wait --timeout=10m
+
+      - name: Wait for core workloads
+        run: |
+          kubectl wait --for=condition=available deployment --all -n flux-system --timeout=5m
+          kubectl wait --for=condition=ready pod --all -n welkin-system --timeout=10m
+
+      - name: Deploy sample annotated workload
+        run: |
+          kubectl create namespace smoke --dry-run=client -o yaml | kubectl apply -f -
+          cat <<EOF_POD | kubectl apply -f -
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: welkin-smoke
+            namespace: smoke
+            annotations:
+              openmeter.io/subject: tenant-smoke
+              data.openmeter.io/region: ci
+          spec:
+            restartPolicy: Never
+            containers:
+              - name: pause
+                image: registry.k8s.io/pause:3.10
+          EOF_POD
+          sleep 45
+
+      - name: Capture deployment state
+        run: |
+          kubectl get all -A
+          kubectl logs -n welkin-system deployment/openmeter-collector --tail=200 || true

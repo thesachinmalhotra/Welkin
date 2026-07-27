@@ -1,0 +1,38 @@
+name: validate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install CUE
+        run: go install cuelang.org/go/cmd/cue@latest
+
+      - name: Install Timoni
+        run: go install github.com/stefanprodan/timoni/cmd/timoni@latest
+
+      - name: Install rpk
+        run: |
+          curl -LO https://github.com/redpanda-data/redpanda/releases/latest/download/rpk-linux-amd64.zip
+          unzip -o rpk-linux-amd64.zip -d /tmp/rpk
+          sudo install /tmp/rpk/rpk /usr/local/bin/rpk
+
+      - name: Validate canonical contract
+        run: ~/go/bin/cue vet ./collector/fixtures/canonical-event.json ./cue/schema/cloudevent.cue
+
+      - name: Run collector tests
+        run: rpk connect test ./collector/tests/...
+
+      - name: Vet Timoni bundle
+        run: ~/go/bin/timoni bundle vet -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue

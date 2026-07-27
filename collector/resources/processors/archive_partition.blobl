@@ -1,0 +1,8 @@
+root = {
+  "partition": {
+    "source": this.source,
+    "eventType": this.type,
+    "day": this.time.string().slice(0, 10)
+  },
+  "event": this
+}

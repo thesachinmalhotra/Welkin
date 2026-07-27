@@ -1,0 +1,10 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: welkin-release
+  namespace: flux-system
+spec:
+  interval: 5m0s
+  url: oci://ghcr.io/REPLACE_ME/welkin-release
+  ref:
+    tag: latest

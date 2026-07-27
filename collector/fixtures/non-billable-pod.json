@@ -1,0 +1,19 @@
+{
+  "metadata": {
+    "name": "ignored-pod",
+    "namespace": "acme",
+    "annotations": {
+      "openmeter.io/billable": "false"
+    }
+  },
+  "spec": {
+    "containers": [
+      {
+        "resources": {
+          "limits": {},
+          "requests": {}
+        }
+      }
+    ]
+  }
+}
