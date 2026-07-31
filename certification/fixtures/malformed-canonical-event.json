@@ -1,0 +1,12 @@
+{
+  "id": "",
+  "specversion": "1.0",
+  "type": "kube-pod-exec-time",
+  "source": "kubernetes-api",
+  "time": "2026-07-31T00:00:00Z",
+  "subject": "",
+  "data": {
+    "pod_name": "demo-pod",
+    "pod_namespace": "acme"
+  }
+}

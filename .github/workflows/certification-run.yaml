@@ -1,0 +1,85 @@
+name: certification-run
+
+on:
+  workflow_call:
+    inputs:
+      scenario_id:
+        required: true
+        type: string
+      environment_name:
+        required: false
+        type: string
+        default: certification
+  workflow_dispatch:
+    inputs:
+      scenario_id:
+        description: Certification scenario id
+        required: true
+        type: string
+      environment_name:
+        description: GitHub environment name
+        required: false
+        type: string
+        default: certification
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install tooling
+        run: |
+          go install cuelang.org/go/cmd/cue@latest
+          go install github.com/stefanprodan/timoni/cmd/timoni@latest
+          curl -LO https://github.com/redpanda-data/redpanda/releases/latest/download/rpk-linux-amd64.zip
+          unzip -o rpk-linux-amd64.zip -d /tmp/rpk
+          sudo install /tmp/rpk/rpk /usr/local/bin/rpk
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          sudo mv kubectl /usr/local/bin/kubectl
+
+      - name: Export certification catalog
+        run: ~/go/bin/cue export certification/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
+
+      - name: Validate certification catalog
+        run: python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
+
+      - name: Select scenario
+        run: python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json --scenario "${{ inputs.scenario_id }}" --output /tmp/welkin-certification-scenario.json
+
+      - name: Prepare evidence directory
+        run: mkdir -p artifacts/certification/${{ inputs.scenario_id }}
+
+      - name: Run certification scenario
+        run: |
+          python scripts/certification/run_scenario.py \
+            --catalog /tmp/welkin-certification-catalog.json \
+            --scenario /tmp/welkin-certification-scenario.json \
+            --artifact-dir artifacts/certification/${{ inputs.scenario_id }}
+
+      - name: Publish evidence summary
+        if: always()
+        run: cat artifacts/certification/${{ inputs.scenario_id }}/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-${{ inputs.scenario_id }}-${{ github.run_id }}
+          path: artifacts/certification/${{ inputs.scenario_id }}
