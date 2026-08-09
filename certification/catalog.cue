@@ -44,14 +44,14 @@ catalog: {
 			evidence: ["expected failure output", "contract validation log", "scenario summary"]
 		}
 
-		runtime_archive_independence: #Guarantee & {
-			id: "runtime-archive-independence"
-			title: "Runtime and archive remain independent"
-			claim: "Archive degradation must not prevent runtime delivery."
-			verification: "Inject archive failure and prove the runtime branch continues to accept canonical events."
+		economic_archive_independence: #Guarantee & {
+			id: "economic-archive-independence"
+			title: "Economic and archive remain independent"
+			claim: "Archive degradation must not prevent economic delivery."
+			verification: "Inject archive failure and prove the economic branch continues to accept canonical events."
 			status: "scaffolded"
 			scenarios: ["plane_independence"]
-			evidence: ["archive failure injection log", "runtime continuity log", "branch separation evidence"]
+			evidence: ["archive failure injection log", "economic continuity log", "branch separation evidence"]
 		}
 
 		duplicate_billing_prevention: #Guarantee & {
@@ -114,9 +114,9 @@ catalog: {
 			purpose: "Prove the runtime branch continues when archive delivery is degraded."
 			mode: "mock-prod"
 			status: "scaffolded"
-			guarantees: ["runtime-archive-independence"]
-			verification: ["inject archive-side failure", "observe runtime continuity", "compare branch-specific logs"]
-			evidence: ["archive failure log", "runtime continuity log", "branch independence summary"]
+			guarantees: ["economic-archive-independence"]
+			verification: ["inject archive-side failure", "observe economic continuity", "compare branch-specific logs"]
+			evidence: ["archive failure log", "economic continuity log", "branch independence summary"]
 			notes: "This is scaffolded because the repo does not yet include a dedicated failure-injection harness for the archive plane."
 		}
 

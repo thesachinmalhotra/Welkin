@@ -8,7 +8,7 @@ Welkin certification exists to prove architectural guarantees with executable ev
 | --- | --- | --- | --- |
 | One canonical CloudEvent boundary | Implemented | Validate the canonical CloudEvent contract and the collector canonicalization path. | `cue vet` output, collector fixture output, workflow summary, artifact bundle |
 | Malformed events fail at the correct boundary | Implemented | Run invalid canonical input through the canonical contract and assert validation fails before deployment steps. | Expected-failure output, contract validation log, scenario summary |
-| Runtime and archive remain independent | Scaffolded | Inject archive-side failure and prove the runtime branch continues. | Archive failure log, runtime continuity log, branch independence evidence |
+| Economic and archive remain independent | Scaffolded | Inject archive-side failure and prove the economic branch continues. | Archive failure log, economic continuity log, branch independence evidence |
 | Duplicate events do not become duplicate billing | Planned | Replay the same canonical batch and compare billing-facing results. | OpenMeter query result, dedup diff, replay log |
 | Producer diversity only affects the edge | Planned | Exercise multiple collector presets and compare the canonical downstream shape. | Preset matrix, canonical shape diff, producer trace bundle |
 | Deployment stays reproducible from a clean environment | Implemented | Create a fresh cluster and apply the release through the same composition path. | Kind bootstrap log, Timoni render, Flux reconciliation log, artifact bundle |

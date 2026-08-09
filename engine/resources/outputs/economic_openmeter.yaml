@@ -1,5 +1,5 @@
 output_resources:
-  - label: welkin_runtime_openmeter
+  - label: welkin_economic_openmeter
     openmeter:
       url: ${OPENMETER_URL:http://openmeter-api}
       token: ${OPENMETER_TOKEN:}

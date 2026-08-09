@@ -1,7 +1,9 @@
-let subject = this.metadata.annotations."openmeter.io/subject".or(this.metadata.name)
-let billable = this.metadata.annotations."openmeter.io/billable".or("true")
-let duration_seconds = (meta("schedule_interval").parse_duration() / 1000 / 1000 / 1000).round().int64()
-let event_time = meta("schedule_time")
+let annotations = this.metadata.annotations.or({})
+let subject = $annotations."openmeter.io/subject".or(this.metadata.name)
+let billable = $annotations."openmeter.io/billable".or("true")
+
+let duration_seconds = (meta("schedule_interval").or("15s").parse_duration() / 1000 / 1000 / 1000).round().int64()
+let event_time = meta("schedule_time").or("1970-01-01T00:00:00Z")
 
 root = if $billable != "true" {
   deleted()
@@ -13,7 +15,7 @@ root = if $billable != "true" {
     "source": "kubernetes-api",
     "time": $event_time,
     "subject": $subject,
-    "data": this.metadata.annotations.filter(item -> item.key.has_prefix("data.openmeter.io/")).map_each_key(key -> key.trim_prefix("data.openmeter.io/")).assign({
+    "data": $annotations.filter(item -> item.key.has_prefix("data.openmeter.io/")).map_each_key(key -> key.trim_prefix("data.openmeter.io/")).assign({
       "pod_name": this.metadata.name,
       "pod_namespace": this.metadata.namespace,
       "duration_seconds": $duration_seconds,
@@ -25,10 +27,3 @@ root = if $billable != "true" {
   }
 }
 
-root = if this == deleted() {
-  deleted()
-} else if !this.exists("subject") || this.subject == "" {
-  throw("missing subject")
-} else {
-  this
-}
