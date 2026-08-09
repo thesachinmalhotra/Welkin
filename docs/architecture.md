@@ -6,7 +6,7 @@ Welkin is a canonicalization and routing substrate.
 
 It accepts heterogeneous producer events, transforms them once into canonical CloudEvents, and then routes the same canonical message into two independent planes:
 
-- Runtime Plane for metering, billing, and economic logic
+- Economic Plane for metering, billing, and economic logic
 - Archive Plane for preservation, replay, and historical durability
 
 ## Boundary model
@@ -15,17 +15,17 @@ It accepts heterogeneous producer events, transforms them once into canonical Cl
 
 The producer edge is intentionally diverse. Welkin does not force uniformity before ingestion. Instead, it relies on the OpenMeter Collector ecosystem to absorb upstream variation.
 
-### Collector core
+### Canonicalization Engine
 
-The collector is the heart of Welkin. It is responsible for:
+OpenMeter Collector is the heart of Welkin. It is responsible for:
 
-- receiving producer events
-- reshaping them with Bloblang
-- validating the canonical CloudEvent envelope
-- dropping malformed or non-billable events
-- fanning out canonical events to runtime and archive outputs
+- receiving producer events through the existing OpenMeter Collector and Redpanda Connect ecosystem
+- applying source presets, connectors, and Bloblang mappings where needed
+- validating the Canonical CloudEvent envelope at Welkin's substrate boundary
+- dropping malformed canonical candidates
+- fanning out canonical events to economic and archive outputs
 
-Producer-specific logic must stop here.
+Producer-specific logic belongs to the collector ecosystem before the Canonical CloudEvent boundary.
 
 ### Canonical event boundary
 
@@ -33,9 +33,9 @@ Once an event reaches the canonical CloudEvent contract, downstream behavior mus
 
 That contract is the point of architectural discipline in Welkin.
 
-### Runtime plane
+### Economic plane
 
-OpenMeter owns runtime truth:
+OpenMeter owns economic truth:
 
 - ingestion of canonical events
 - usage metering

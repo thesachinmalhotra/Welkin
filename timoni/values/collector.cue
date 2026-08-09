@@ -1,131 +1,12 @@
 package main
 
-collectorConfig: {
-  logger: {
-    level:  "${LOG_LEVEL:INFO}"
-    format: "${LOG_FORMAT:json}"
-    static_fields: {
-      service: "welkin-collector"
-    }
-  }
+// Collector behavior is defined by a single source of truth:
+// `engine/config/base.yaml`.
+//
+// Timoni/Helm supplies Environment State via env vars and chart values.
 
-  http: {
-    enabled:         true
-    address:         "0.0.0.0:4195"
-    debug_endpoints: false
-  }
-
-  metrics: prometheus: add_process_metrics: true
-  shutdown_timeout: "20s"
-
-  pipeline: processors: [
-    {
-      mapping: "file://./resources/processors/canonicalize_kubernetes.blobl"
-    },
-    {
-      resource: "welkin_validate_cloudevent"
-    },
-    {
-      catch: [
-        {
-          log: {
-            level:   "ERROR"
-            message: "Dropping invalid canonical event due to: ${! error() }"
-          }
-        },
-        {
-          mapping: "root = deleted()"
-        },
-      ]
-    },
-  ]
-
-  output: broker: {
-    pattern: "fan_out"
-    outputs: [
-      {
-        resource: "welkin_runtime_openmeter"
-      },
-      {
-        drop_on: {
-          back_pressure: "30s"
-          output: resource: "welkin_archive_s3"
-        }
-      },
-    ]
-  }
-
-  processor_resources: [
-    {
-      label: "welkin_validate_cloudevent"
-      json_schema: schema_path: "file://./schemas/cloudevent.schema.json"
-    },
-  ]
-
-  output_resources: [
-    {
-      label: "welkin_runtime_openmeter"
-      openmeter: {
-        url:   "${OPENMETER_URL:http://openmeter-api}"
-        token: "${OPENMETER_TOKEN:}"
-      }
-    },
-    {
-      label: "welkin_archive_s3"
-      aws_s3: {
-        bucket: runtime.archive.bucket
-        path:   "welkin/source=${! json(\"partition.source\") }/type=${! json(\"partition.eventType\") }/day=${! json(\"partition.day\") }/${! uuid_v4() }.parquet"
-        endpoint:              runtime.archive.endpoint
-        force_path_style_urls: runtime.archive.forcePathStyle
-        region:                runtime.archive.region
-        credentials: {
-          id:     runtime.archive.accessKeyID
-          secret: runtime.archive.secretAccessKey
-        }
-        processors: [
-          {
-            mapping: "file://./resources/processors/archive_partition.blobl"
-          },
-        ]
-        batching: {
-          count:  runtime.archive.batchCount
-          period: runtime.archive.batchPeriod
-          processors: [
-            {
-              parquet_encode: {
-                schema: [
-                  {
-                    name: "partition"
-                    fields: [
-                      {name: "source", type: "UTF8"},
-                      {name: "eventType", type: "UTF8"},
-                      {name: "day", type: "UTF8"},
-                    ]
-                  },
-                  {
-                    name: "event"
-                    fields: [
-                      {name: "id", type: "UTF8"},
-                      {name: "specversion", type: "UTF8"},
-                      {name: "type", type: "UTF8"},
-                      {name: "source", type: "UTF8"},
-                      {name: "time", type: "UTF8"},
-                      {name: "subject", type: "UTF8"},
-                      {name: "data", type: "JSON"},
-                    ]
-                  },
-                ]
-                default_compression:    "zstd"
-                default_timestamp_unit: "MICROSECOND"
-              }
-            },
-          ]
-        }
-      }
-    },
-  ]
-}
-
+// NOTE: We use `configFile` rather than inline `config` to keep a single
+// authoritative collector config in `engine/config/base.yaml`.
 collectorValues: {
   repository: url: "oci://ghcr.io/openmeterio/helm-charts"
   chart: {
@@ -135,17 +16,55 @@ collectorValues: {
   sync: targetNamespace: runtime.namespace
   helmValues: {
     fullnameOverride: "openmeter-collector"
+    // With configFile set, the chart ignores preset.
+    // Keep this value for documentation/discoverability.
     preset:           runtime.collector.preset
-    storage: enabled: true
+
+    service: enabled: runtime.collector.serviceEnabled
+    storage: {
+      enabled: runtime.collector.storageEnabled
+      size:    runtime.collector.storageSize
+    }
+
     env: [
+      // OpenMeter destination.
       {name: "OPENMETER_URL", value: runtime.openmeter.url},
       {name: "OPENMETER_TOKEN", value: runtime.openmeter.token},
+
+      // Kubernetes preset knobs (still used by our mapping and/or underlying input).
       {name: "SCRAPE_NAMESPACE", value: runtime.collector.scrapeNamespace},
       {name: "SCRAPE_INTERVAL", value: runtime.collector.scrapeInterval},
+
+      // Batching knobs.
       {name: "BATCH_SIZE", value: runtime.collector.batchSize},
       {name: "BATCH_PERIOD", value: runtime.collector.batchPeriod},
+
+      // Debug.
       {name: "DEBUG", value: runtime.collector.debug},
+
+      // Buffering and lifecycle.
+      {name: "BUFFER_PATH", value: runtime.collector.bufferPath},
+      {name: "SHUTDOWN_DELAY", value: runtime.collector.shutdownDelay},
+      {name: "SHUTDOWN_TIMEOUT", value: runtime.collector.shutdownTimeout},
+
+      // Logging.
+      {name: "LOG_LEVEL", value: runtime.collector.logLevel},
+      {name: "LOG_FORMAT", value: runtime.collector.logFormat},
+
+      // Identity fields used in structured logs.
+      {name: "K8S_APP_INSTANCE", value: "openmeter-collector"},
+      {name: "K8S_APP_VERSION", value: runtime.charts.collectorVersion},
+
+      // Archive output.
+      {name: "ARCHIVE_S3_BUCKET", value: runtime.archive.bucket},
+      {name: "ARCHIVE_S3_ENDPOINT", value: runtime.archive.endpoint},
+      {name: "ARCHIVE_S3_FORCE_PATH_STYLE", value: runtime.archive.forcePathStyle.string()},
+      {name: "ARCHIVE_S3_REGION", value: runtime.archive.region},
+      {name: "ARCHIVE_S3_ACCESS_KEY_ID", value: runtime.archive.accessKeyID},
+      {name: "ARCHIVE_S3_SECRET_ACCESS_KEY", value: runtime.archive.secretAccessKey},
+      {name: "ARCHIVE_BATCH_COUNT", value: runtime.archive.batchCount.string()},
+      {name: "ARCHIVE_BATCH_PERIOD", value: runtime.archive.batchPeriod},
     ]
-    config: collectorConfig
+    configFile: "welkin/config/base.yaml"
   }
 }

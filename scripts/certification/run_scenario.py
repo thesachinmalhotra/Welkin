@@ -78,8 +78,8 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
     overlay = build_overlay()
 
     try:
-        run_command([str(CUE_BIN), "vet", "./collector/fixtures/canonical-event.json", "./cue/schema/cloudevent.cue"], artifact_dir, "cue-vet.log")
-        run_command(["rpk", "connect", "test", "./collector/tests/kubernetes_runtime_archive_benthos_test.yaml"], artifact_dir, "rpk-connect-test.log")
+        run_command([str(CUE_BIN), "vet", "-d", "#CloudEvent", "./engine/fixtures/canonical-event.json", "./contracts/schema/cloudevent.cue"], artifact_dir, "cue-vet.log")
+        run_command(["rpk", "connect", "test", "./engine/tests/archive_partition_test.yaml"], artifact_dir, "rpk-connect-test.log")
         run_command(["kind", "create", "cluster", "--name", "welkin-certification"], artifact_dir, "kind-create.log")
         run_command(
             [
@@ -137,7 +137,7 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
 
 
 def malformed_boundary(artifact_dir: Path) -> tuple[str, list[str]]:
-    command = [str(CUE_BIN), "vet", "certification/fixtures/malformed-canonical-event.json", "./cue/schema/cloudevent.cue"]
+    command = [str(CUE_BIN), "vet", "-d", "#CloudEvent", "certification/fixtures/malformed-canonical-event.json", "./contracts/schema/cloudevent.cue"]
     completed = subprocess.run(command, capture_output=True, text=True)
     write_text(artifact_dir / "cue-vet.log", command_log(command, completed.returncode, completed.stdout, completed.stderr, include_output=True))
 

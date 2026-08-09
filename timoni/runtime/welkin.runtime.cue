@@ -22,6 +22,16 @@ runtime: {
     batchSize:       *"100" | string
     batchPeriod:     *"1s" | string
     debug:           *"false" | string
+
+    serviceEnabled: *false | bool
+    storageEnabled: *true | bool
+    storageSize:    *"1Gi" | string
+    bufferPath:     *"/data/buffer.db" | string
+
+    logLevel:       *"INFO" | string
+    logFormat:      *"json" | string
+    shutdownDelay:  *"5s" | string
+    shutdownTimeout:*"20s" | string
   }
 
   archive: {

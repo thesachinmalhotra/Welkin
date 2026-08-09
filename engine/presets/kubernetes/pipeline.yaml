@@ -1,6 +1,6 @@
 pipeline:
   processors:
-    - mapping: file://./resources/processors/canonicalize_kubernetes.blobl
+    - mapping: file://./presets/kubernetes/canonicalize.blobl
     - resource: welkin_validate_cloudevent
     - catch:
         - log:
@@ -12,7 +12,7 @@ output:
   broker:
     pattern: fan_out
     outputs:
-      - resource: welkin_runtime_openmeter
+      - resource: welkin_economic_openmeter
       - drop_on:
           back_pressure: 30s
           output:

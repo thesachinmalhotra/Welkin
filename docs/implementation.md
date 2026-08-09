@@ -2,23 +2,28 @@
 
 ## Repository responsibilities
 
-- `cue/` holds the canonical CloudEvent and archive contracts.
-- `collector/` holds the ingestion core: fixtures, schemas, Bloblang mappings, outputs, and unit tests.
+- `contracts/` holds the canonical CloudEvent and archive contracts.
+- `engine/` holds the OpenMeter Collector substrate: canonical validation, fan-out resources, archive handling, source presets, fixtures, and tests.
 - `timoni/` holds the deployment bundle and runtime contract.
 - `flux/` holds the GitOps-facing handoff once Welkin release artifacts are published.
 - `.github/workflows/` holds remote validation and smoke deployment automation.
 
 ## Current first-class path
 
-The first implemented path is the Kubernetes-oriented collector route.
+The first implemented path is source-agnostic at the Canonical CloudEvent boundary.
 
 Key pieces:
 
-- `collector/resources/processors/canonicalize_kubernetes.blobl`
-- `collector/resources/outputs/runtime_openmeter.yaml`
-- `collector/resources/outputs/archive_s3.yaml`
-- `collector/config/base.yaml`
-- `collector/tests/kubernetes_runtime_archive_benthos_test.yaml`
+- `engine/config/base.yaml`
+- `engine/resources/processors/validate_cloudevent.yaml`
+- `engine/resources/processors/archive_partition.blobl`
+- `engine/resources/outputs/economic_openmeter.yaml`
+- `engine/resources/outputs/archive_s3.yaml`
+- `engine/tests/archive_partition_test.yaml`
+
+The Canonical CloudEvent contract is validated with CUE against fixtures in `engine/fixtures/` and `contracts/`.
+
+Kubernetes support is kept under `engine/presets/kubernetes/` as an OpenMeter Collector preset example, not as Welkin's core event model.
 
 ## Delivery posture
 

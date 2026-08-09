@@ -6,8 +6,8 @@ Welkin v1 has one governing rule: producer diversity is allowed only before cano
 
 ## What this repo gives you
 
-- `cue/` for canonical event and archive contract definitions
-- `collector/` for OpenMeter Collector / Redpanda Connect mappings, resources, and tests
+- `contracts/` for canonical event and archive contract definitions
+- `engine/` for the OpenMeter Collector substrate: canonical validation, fan-out resources, archive handling, tests, and optional source presets
 - `timoni/` for the primary install surface and runtime contract
 - `flux/` for OCI-based GitOps handoff after publishing release artifacts
 - `.github/workflows/` for validation and certification workflows
@@ -18,18 +18,18 @@ Welkin v1 has one governing rule: producer diversity is allowed only before cano
 
 Welkin v1 is two planes only:
 
-- Runtime Plane: canonical CloudEvents flow into OpenMeter.
+- Economic Plane: canonical CloudEvents flow into OpenMeter.
 - Archive Plane: the same canonical CloudEvents are encoded as Parquet and written to S3-compatible storage.
 
-The collector is the soul of Welkin. It absorbs producer diversity, normalizes events once, validates the canonical shape, and fans out one fixed stream to both planes.
+OpenMeter Collector is the soul of Welkin. Producer diversity belongs to the OpenMeter Collector and Redpanda Connect ecosystem. Welkin validates the Canonical CloudEvent boundary and fans out one fixed canonical stream to both planes.
 
-## Golden path
+## Collector substrate
 
-The first built path in this repo is Kubernetes-oriented and follows the ecosystem-native route:
+Welkin is source-agnostic at the substrate boundary:
 
-`Kubernetes preset -> Bloblang normalization -> canonical CloudEvent -> broker fan_out -> OpenMeter + Parquet-on-S3`
+`OpenMeter Collector source or preset -> Canonical CloudEvent -> validation -> broker fan_out -> OpenMeter + Parquet-on-S3`
 
-That keeps Welkin aligned with the OpenMeter Collector and Redpanda Connect happy path instead of inventing custom services or adapters.
+Kubernetes support lives as an optional OpenMeter Collector preset example, not as Welkin's core event model. The goal is to compose and exploit the existing collector ecosystem rather than replace it.
 
 ## Certification
 
