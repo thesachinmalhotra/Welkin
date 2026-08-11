@@ -60,7 +60,7 @@ catalog: {
 			claim: "Replay does not produce duplicate economic effects."
 			verification: "Replay the same canonical event batch and compare the billing-facing result set."
 			status: "planned"
-			scenarios: ["duplicate_billing"]
+			scenarios: ["duplicate-billing"]
 			evidence: ["replay log", "OpenMeter query result", "dedup comparison"]
 		}
 
@@ -70,7 +70,7 @@ catalog: {
 			claim: "Different upstream producer families converge to the same downstream substrate."
 			verification: "Run multiple producer families through the collector and diff the canonical downstream shape."
 			status: "planned"
-			scenarios: ["producer_diversity"]
+			scenarios: ["producer-diversity"]
 			evidence: ["preset matrix", "canonical shape diff", "producer trace bundle"]
 		}
 
