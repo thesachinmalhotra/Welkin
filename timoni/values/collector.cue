@@ -69,11 +69,11 @@ collectorValues: {
       // Archive output.
       {name: "ARCHIVE_S3_BUCKET", value: runtime.archive.bucket},
       {name: "ARCHIVE_S3_ENDPOINT", value: runtime.archive.endpoint},
-      {name: "ARCHIVE_S3_FORCE_PATH_STYLE", value: runtime.archive.forcePathStyle.string()},
+      {name: "ARCHIVE_S3_FORCE_PATH_STYLE", value: (runtime.archive.forcePathStyle == true) ? "true" : "false"},
       {name: "ARCHIVE_S3_REGION", value: runtime.archive.region},
       {name: "ARCHIVE_S3_ACCESS_KEY_ID", value: runtime.archive.accessKeyID},
       {name: "ARCHIVE_S3_SECRET_ACCESS_KEY", value: runtime.archive.secretAccessKey},
-      {name: "ARCHIVE_BATCH_COUNT", value: runtime.archive.batchCount.string()},
+      {name: "ARCHIVE_BATCH_COUNT", value: runtime.archive.batchCount},
       {name: "ARCHIVE_BATCH_PERIOD", value: runtime.archive.batchPeriod},
     ]
     configFile: "welkin/config/base.yaml"
