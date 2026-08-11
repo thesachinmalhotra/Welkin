@@ -10,6 +10,14 @@
 
 ## Global Constraints
 
+### Progress (2026-08-11)
+- [x] Pin OpenMeter release defaults in timoni/runtime to v1.0.0-beta.232 (chart digest: sha256:bf2afa50f4...; image amd64: sha256:4a816108...)
+- [ ] Pin benthos-collector chart by OCI digest in Timoni bundle (next)
+- [ ] Pin container image by digest in chart values (next)
+
+
+## Global Constraints
+
 - Welkin v1 is only two planes: Runtime (OpenMeter -> Stripe) and Archive (Parquet on object storage).
 - Do not add Iceberg, Polaris, DataFusion, Arrow Flight, or any archive committer service.
 - Do not add microservices, controllers, or custom business-logic services.
