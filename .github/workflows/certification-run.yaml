@@ -44,6 +44,7 @@ jobs:
         run: |
           go install cuelang.org/go/cmd/cue@v0.4.0
           go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
+          # rpk: test-only tooling for connect/mapping tests. Not the production OpenMeter Collector.
           curl -LO https://github.com/redpanda-data/redpanda/releases/download/v26.2.1/rpk-linux-amd64.zip
           unzip -o rpk-linux-amd64.zip -d /tmp/rpk
           sudo install /tmp/rpk/rpk /usr/local/bin/rpk

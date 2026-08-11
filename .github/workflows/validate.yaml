@@ -27,7 +27,9 @@ jobs:
       - name: Install Timoni
         run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
 
-      - name: Install rpk
+      - name: Install rpk (test-only tooling)
+        # rpk is used only as a local/CI test harness for Benthos/Redpanda Connect mappings
+        # It is NOT the OpenMeter Collector runtime. Do not use rpk as a production collector.
         run: |
           curl -LO https://github.com/redpanda-data/redpanda/releases/download/v26.2.1/rpk-linux-amd64.zip
           unzip -o rpk-linux-amd64.zip -d /tmp/rpk
