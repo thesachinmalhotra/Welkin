@@ -22,8 +22,6 @@ jobs:
             'tag: latest'
             'releases/latest'
             'ubuntu-latest'
-            '"*"'
-            '\*"\*"'
           )
 
           status=0
