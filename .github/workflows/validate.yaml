@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -22,14 +22,14 @@ jobs:
           python-version: '3.11'
 
       - name: Install CUE
-        run: go install cuelang.org/go/cmd/cue@latest
+        run: go install cuelang.org/go/cmd/cue@v0.4.0
 
       - name: Install Timoni
-        run: go install github.com/stefanprodan/timoni/cmd/timoni@latest
+        run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
 
       - name: Install rpk
         run: |
-          curl -LO https://github.com/redpanda-data/redpanda/releases/latest/download/rpk-linux-amd64.zip
+          curl -LO https://github.com/redpanda-data/redpanda/releases/download/v26.2.1/rpk-linux-amd64.zip
           unzip -o rpk-linux-amd64.zip -d /tmp/rpk
           sudo install /tmp/rpk/rpk /usr/local/bin/rpk
 

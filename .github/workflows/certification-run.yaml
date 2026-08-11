@@ -24,7 +24,7 @@ on:
 
 jobs:
   certify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     environment: ${{ inputs.environment_name }}
     steps:
       - name: Check out repo
@@ -42,9 +42,9 @@ jobs:
 
       - name: Install tooling
         run: |
-          go install cuelang.org/go/cmd/cue@latest
-          go install github.com/stefanprodan/timoni/cmd/timoni@latest
-          curl -LO https://github.com/redpanda-data/redpanda/releases/latest/download/rpk-linux-amd64.zip
+          go install cuelang.org/go/cmd/cue@v0.4.0
+          go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
+          curl -LO https://github.com/redpanda-data/redpanda/releases/download/v26.2.1/rpk-linux-amd64.zip
           unzip -o rpk-linux-amd64.zip -d /tmp/rpk
           sudo install /tmp/rpk/rpk /usr/local/bin/rpk
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64
