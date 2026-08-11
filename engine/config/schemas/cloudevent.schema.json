@@ -2,13 +2,36 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "id": {"type": "string"},
-    "specversion": {"type": "string"},
-    "type": {"type": "string"},
-    "source": {"type": "string"},
-    "time": {"type": "string"},
-    "subject": {"type": "string"},
-    "data": {"type": "object"}
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "specversion": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "time": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data": {
+      "type": "object"
+    }
   },
-  "required": ["id","specversion","type","source","time","data"]
+  "required": [
+    "id",
+    "specversion",
+    "type",
+    "source",
+    "time",
+    "data"
+  ]
 }
