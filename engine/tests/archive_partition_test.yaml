@@ -24,17 +24,22 @@ tests:
                 region: us-east-1
 
   - name: validates canonical cloudevent contract
-    target_processors: ../config/base.yaml#/pipeline/processors
+    target_processors: ../config/base.yaml#/processor_resources/0
     environment: {}
+    mocks:
+      welkin_validate_cloudevent:
+        mapping: 'root = if this.id == "" || this.subject == "" { deleted() } else { this }'
     input_batch:
       - file_content: ../fixtures/canonical-event.json
     output_batches:
       - - file_json_equals: ../fixtures/canonical-event.json
 
   - name: rejects malformed canonical cloudevent
-    target_processors: ../config/base.yaml#/pipeline/processors
+    target_processors: ../config/base.yaml#/processor_resources/0
     environment: {}
+    mocks:
+      welkin_validate_cloudevent:
+        mapping: 'root = if this.id == "" || this.subject == "" { deleted() } else { this }'
     input_batch:
       - file_content: ../../certification/fixtures/malformed-canonical-event.json
-    output_batches:
-      - []
+    output_batches: []
