@@ -1,0 +1,44 @@
+name: pinning-guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  guard:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Fail if unpinned patterns exist
+        run: |
+          set -euo pipefail
+          echo "Scanning for forbidden unpinned patterns..."
+          forbidden_patterns=(
+            '@latest'
+            'tag: latest'
+            'releases/latest'
+            'ubuntu-latest'
+            '"*"'
+            '\*"\*"'
+          )
+
+          status=0
+          for p in "${forbidden_patterns[@]}"; do
+            echo "Searching for pattern: $p"
+            if grep -R --line-number --exclude-dir=.git --exclude='*.png' --exclude='*.ico' -e "$p" . >/dev/null 2>&1; then
+              echo "ERROR: found occurrences of forbidden pattern: $p"
+              grep -R --line-number --exclude-dir=.git -e "$p" || true
+              status=1
+            fi
+          done
+
+          if [ "$status" -ne 0 ]; then
+            echo "One or more forbidden patterns were detected. Please pin all versions and remove wildcards before merging."
+            exit 1
+          fi
+
+          echo "No forbidden patterns found."
