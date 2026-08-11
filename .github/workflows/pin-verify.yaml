@@ -62,7 +62,11 @@ jobs:
             exit 2
           fi
 
+          echo "Chart manifest JSON:"
+          jq -C . /tmp/chart-manifest.json || cat /tmp/chart-manifest.json || true
+
           echo "Locating chart tar layer in manifest"
+          echo "Layer list:"; jq -r '.layers[] | .mediaType + " " + (.digest // "")' /tmp/chart-manifest.json || true
           LAYER_DIGEST=$(jq -r '.layers[] | select(.mediaType=="application/vnd.cncf.helm.chart.content.v1.tar+gzip" or .mediaType=="application/tar+gzip" or (.annotations and .annotations["org.opencontainers.image.title"]=="chart.tgz")) | .digest' /tmp/chart-manifest.json | head -n1)
           if [ -z "$LAYER_DIGEST" ] || [ "$LAYER_DIGEST" = "null" ]; then
             echo "ERROR: unable to find chart layer in manifest" >&2
