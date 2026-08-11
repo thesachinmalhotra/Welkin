@@ -1,0 +1,59 @@
+name: pin-verify
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - pins/iteration-1
+
+jobs:
+  verify-pins:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y curl jq
+
+      - name: Verify GHCR chart and image digests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          EXPECTED_CHART_DIGEST: "sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841"
+          CHART_REPO: "openmeterio/helm-charts"
+          CHART_NAME: "benthos-collector"
+          CHART_TAG: "1.0.0-beta.232"
+          EXPECTED_IMAGE_DIGEST: "sha256:4a816108919b77d35209ad9053dca417897bfc463cd6c13ff71262ad35103119"
+          IMAGE_REPO: "openmeterio/benthos-collector"
+          IMAGE_TAG: "v1.0.0-beta.232"
+        run: |
+          set -euo pipefail
+          echo "Requesting GHCR token for chart repo $CHART_REPO"
+          TOKEN_CHART=$(curl -s -u "${GITHUB_ACTOR}:${GITHUB_TOKEN}" "https://ghcr.io/token?service=ghcr.io&scope=repository:${CHART_REPO}:pull" | jq -r .token)
+          echo "Fetching chart manifest headers for ${CHART_NAME}:${CHART_TAG}"
+          HEADERS=$(curl -s -D - -H "Authorization: Bearer ${TOKEN_CHART}" -H "Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json" "https://ghcr.io/v2/${CHART_REPO}/${CHART_NAME}/manifests/${CHART_TAG}")
+          CHART_DIGEST=$(echo "$HEADERS" | awk '/docker-content-digest:/ {print $2}' | tr -d '\r')
+          echo "chart digest: $CHART_DIGEST"
+          if [ "$CHART_DIGEST" != "$EXPECTED_CHART_DIGEST" ]; then
+            echo "ERROR: chart digest mismatch (expected $EXPECTED_CHART_DIGEST)" >&2
+            exit 2
+          fi
+
+          echo "Requesting GHCR token for image repo $IMAGE_REPO"
+          TOKEN_IMAGE=$(curl -s -u "${GITHUB_ACTOR}:${GITHUB_TOKEN}" "https://ghcr.io/token?service=ghcr.io&scope=repository:${IMAGE_REPO}:pull" | jq -r .token)
+          echo "Fetching image manifest index for ${IMAGE_REPO}:${IMAGE_TAG}"
+          curl -s -H "Authorization: Bearer ${TOKEN_IMAGE}" -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json" "https://ghcr.io/v2/${IMAGE_REPO}/manifests/${IMAGE_TAG}" -o /tmp/image-manifest.json
+          IMAGE_DIGEST_AMD64=$(jq -r '.manifests[] | select(.platform.architecture=="amd64") | .digest' /tmp/image-manifest.json)
+          echo "image amd64 digest: $IMAGE_DIGEST_AMD64"
+          if [ "$IMAGE_DIGEST_AMD64" != "$EXPECTED_IMAGE_DIGEST" ]; then
+            echo "ERROR: image digest mismatch (expected $EXPECTED_IMAGE_DIGEST)" >&2
+            exit 3
+          fi
+
+          echo "Pin verification passed. Chart and image digests match expected values."
