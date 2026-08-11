@@ -30,7 +30,7 @@ catalog: {
 			claim: "Every producer becomes one canonical CloudEvent before downstream consumers see it."
 			verification: "Validate the canonical CloudEvent contract and the collector's canonicalization path."
 			status: "implemented"
-			scenarios: ["canonical_flow"]
+			scenarios: ["canonical-flow"]
 			evidence: ["cue-vet output", "collector fixture output", "workflow summary", "artifact bundle"]
 		}
 
@@ -40,7 +40,7 @@ catalog: {
 			claim: "Malformed canonical candidates fail before runtime or archive fan-out."
 			verification: "Exercise invalid canonical data against the canonical contract and confirm the failure is raised at the collector boundary."
 			status: "implemented"
-			scenarios: ["malformed_boundary"]
+			scenarios: ["malformed-boundary"]
 			evidence: ["expected failure output", "contract validation log", "scenario summary"]
 		}
 
@@ -50,7 +50,7 @@ catalog: {
 			claim: "Archive degradation must not prevent economic delivery."
 			verification: "Inject archive failure and prove the economic branch continues to accept canonical events."
 			status: "scaffolded"
-			scenarios: ["plane_independence"]
+			scenarios: ["plane-independence"]
 			evidence: ["archive failure injection log", "economic continuity log", "branch separation evidence"]
 		}
 
@@ -80,7 +80,7 @@ catalog: {
 			claim: "A fresh cluster can be brought to the Welkin substrate without manual laptop setup."
 			verification: "Provision a clean environment and apply the release through the same composition path."
 			status: "implemented"
-			scenarios: ["canonical_flow"]
+			scenarios: ["canonical-flow"]
 			evidence: ["cluster bootstrap log", "Timoni render", "Flux reconciliation log", "artifact bundle"]
 		}
 	}
