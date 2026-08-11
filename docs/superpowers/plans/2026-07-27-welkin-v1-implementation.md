@@ -12,8 +12,14 @@
 
 ### Progress (2026-08-11)
 - [x] Pin OpenMeter release defaults in timoni/runtime to v1.0.0-beta.232 (chart digest: sha256:bf2afa50f4...; image amd64: sha256:4a816108...)
-- [ ] Pin benthos-collector chart by OCI digest in Timoni bundle (next)
-- [ ] Pin container image by digest in chart values (next)
+- [x] Pin benthos-collector chart by OCI digest in Timoni values (timoni/values/collector.cue)
+- [x] Override collector image.tag to collectorVersion and add CI digest verification
+- [x] Add CI workflow .github/workflows/pin-verify.yaml to assert chart+image digests on GHCR
+- [x] Pin flux release source URL to ghcr.io/thesachinmalhotra/welkin-release (flux/release-source.yaml)
+- [x] Annotate flux-aio and flux-helm-release v2.5.0-0 with GHCR module digests in timoni/runtime/welkin.runtime.cue
+- [ ] Continue: pin flux/timoni module references to OCI digests (optional stronger immutability)
+- [ ] Continue: run full CI (validate + certification-suite) and fix any emergent issues
+- [ ] Continue: update docs and add PR protection requiring pin-verify
 
 
 ## Global Constraints
