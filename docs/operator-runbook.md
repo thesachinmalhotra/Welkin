@@ -10,6 +10,11 @@ A healthy Welkin deployment has:
 - archive credentials resolved correctly
 - collector `/metrics` exposed for scraping
 
+NOTE: Distinction between runtime and test tooling
+
+Welkin's production collector runtime is the OpenMeter Collector (the OpenMeter distribution of Benthos/Redpanda Connect, typically deployed via the `benthos-collector` Helm chart). Some repository tests and developer workflows use the Redpanda `rpk` CLI as a local/CI test harness (rpk connect test) to exercise processor mappings and Bloblang transforms. `rpk` is strictly test tooling and is NOT the production collector runtime.
+
+
 ## Recommended validation sequence
 
 ### 1. Check control plane readiness

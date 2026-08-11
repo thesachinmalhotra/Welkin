@@ -79,6 +79,9 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
 
     try:
         run_command([str(CUE_BIN), "vet", "-d", "#CloudEvent", "./engine/fixtures/canonical-event.json", "./contracts/schema/cloudevent.cue"], artifact_dir, "cue-vet.log")
+        # rpk is invoked here as a test harness for collector mapping/processors only.
+        # This does not imply rpk is the production OpenMeter Collector. The production
+        # collector is the OpenMeter 'benthos-collector' chart deployed via Timoni/Flux.
         run_command(["rpk", "connect", "test", "./engine/tests/archive_partition_test.yaml"], artifact_dir, "rpk-connect-test.log")
         run_command(["kind", "create", "cluster", "--name", "welkin-certification"], artifact_dir, "kind-create.log")
         run_command(
