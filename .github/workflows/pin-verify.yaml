@@ -36,13 +36,46 @@ jobs:
           set -euo pipefail
           echo "Requesting GHCR token for chart repo $CHART_REPO"
           TOKEN_CHART=$(curl -s -u "${GITHUB_ACTOR}:${GITHUB_TOKEN}" "https://ghcr.io/token?service=ghcr.io&scope=repository:${CHART_REPO}:pull" | jq -r .token)
-          echo "Fetching chart manifest headers for ${CHART_NAME}:${CHART_TAG}"
-          HEADERS=$(curl -s -D - -H "Authorization: Bearer ${TOKEN_CHART}" -H "Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json" "https://ghcr.io/v2/${CHART_REPO}/${CHART_NAME}/manifests/${CHART_TAG}")
-          CHART_DIGEST=$(echo "$HEADERS" | awk '/docker-content-digest:/ {print $2}' | tr -d '\r')
+
+          echo "Fetching chart manifest JSON for ${CHART_NAME}:${CHART_TAG}"
+          curl -s -H "Authorization: Bearer ${TOKEN_CHART}" -H "Accept: application/vnd.oci.image.manifest.v1+json" "https://ghcr.io/v2/${CHART_REPO}/${CHART_NAME}/manifests/${CHART_TAG}" -o /tmp/chart-manifest.json
+
+          CHART_DIGEST=$(jq -r '.config.digest // .digest' /tmp/chart-manifest.json || true)
+          # Fallback: read docker-content-digest header if present
+          if [ -z "$CHART_DIGEST" ] || [ "$CHART_DIGEST" = "null" ]; then
+            CHART_DIGEST=$(curl -s -D - -H "Authorization: Bearer ${TOKEN_CHART}" -H "Accept: application/vnd.oci.image.manifest.v1+json" "https://ghcr.io/v2/${CHART_REPO}/${CHART_NAME}/manifests/${CHART_TAG}" | awk '/docker-content-digest:/ {print $2}' | tr -d '\r')
+          fi
+
           echo "chart digest: $CHART_DIGEST"
           if [ "$CHART_DIGEST" != "$EXPECTED_CHART_DIGEST" ]; then
             echo "ERROR: chart digest mismatch (expected $EXPECTED_CHART_DIGEST)" >&2
             exit 2
+          fi
+
+          echo "Locating chart tar layer in manifest"
+          LAYER_DIGEST=$(jq -r '.layers[] | select(.mediaType=="application/vnd.cncf.helm.chart.content.v1.tar+gzip" or .mediaType=="application/tar+gzip" or (.annotations and .annotations["org.opencontainers.image.title"]=="chart.tgz")) | .digest' /tmp/chart-manifest.json | head -n1)
+          if [ -z "$LAYER_DIGEST" ] || [ "$LAYER_DIGEST" = "null" ]; then
+            echo "ERROR: unable to find chart layer in manifest" >&2
+            jq -r '.layers[] | .mediaType + " " + (.digest // "")' /tmp/chart-manifest.json || true
+            exit 4
+          fi
+
+          echo "Fetching chart blob layer $LAYER_DIGEST"
+          curl -s -H "Authorization: Bearer ${TOKEN_CHART}" "https://ghcr.io/v2/${CHART_REPO}/${CHART_NAME}/blobs/${LAYER_DIGEST}" -o /tmp/chart.tgz
+
+          echo "Extracting Chart.yaml from chart.tgz"
+          mkdir -p /tmp/chart_extract
+          tar -xzf /tmp/chart.tgz -C /tmp/chart_extract
+          CHART_APPVERSION=$(grep '^appVersion:' -m1 /tmp/chart_extract/*/Chart.yaml | awk '{print $2}') || true
+          echo "Chart.AppVersion: $CHART_APPVERSION"
+
+          # Normalize expected image tag (strip leading v if present)
+          NORMALIZED_IMAGE_TAG=$(echo "$IMAGE_TAG" | sed 's/^v//')
+          NORMALIZED_CHART_APPVERSION=$(echo "$CHART_APPVERSION" | sed 's/^v//')
+
+          if [ "$NORMALIZED_CHART_APPVERSION" != "$NORMALIZED_IMAGE_TAG" ]; then
+            echo "ERROR: Chart.AppVersion ($CHART_APPVERSION) does not match expected image tag ($IMAGE_TAG)" >&2
+            exit 5
           fi
 
           echo "Requesting GHCR token for image repo $IMAGE_REPO"
@@ -56,4 +89,4 @@ jobs:
             exit 3
           fi
 
-          echo "Pin verification passed. Chart and image digests match expected values."
+          echo "Pin verification passed. Chart digest, chart.AppVersion and image digest match expected values."
