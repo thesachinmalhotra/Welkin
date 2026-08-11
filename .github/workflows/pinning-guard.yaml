@@ -27,9 +27,9 @@ jobs:
           status=0
           for p in "${forbidden_patterns[@]}"; do
             echo "Searching for pattern: $p"
-            if grep -R --line-number --exclude-dir=.git --exclude='*.png' --exclude='*.ico' --exclude='.github/workflows/pinning-guard.yaml' -e "$p" . >/dev/null 2>&1; then
+            if grep -R --line-number --exclude-dir=.git --exclude='*.png' --exclude='*.ico' --exclude='.github/workflows/pinning-guard.yaml' --exclude='pinning-guard.yaml' -e "$p" . >/dev/null 2>&1; then
               echo "ERROR: found occurrences of forbidden pattern: $p"
-              grep -R --line-number --exclude-dir=.git --exclude='.github/workflows/pinning-guard.yaml' -e "$p" || true
+              grep -R --line-number --exclude-dir=.git --exclude='.github/workflows/pinning-guard.yaml' --exclude='pinning-guard.yaml' -e "$p" || true
               status=1
             fi
           done
