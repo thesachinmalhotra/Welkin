@@ -27,7 +27,7 @@ tests:
     target_processors: ../config/base.yaml#/pipeline/processors
     environment: {}
     mocks:
-      /pipeline/processors/0:
+      "../config/base.yaml#/pipeline/processors/0":
         mapping: 'root = if this.id == "" || this.subject == "" { deleted() } else { this }'
     input_batch:
       - file_content: ../fixtures/canonical-event.json
@@ -38,7 +38,7 @@ tests:
     target_processors: ../config/base.yaml#/pipeline/processors
     environment: {}
     mocks:
-      /pipeline/processors/0:
+      "../config/base.yaml#/pipeline/processors/0":
         mapping: 'root = if this.id == "" || this.subject == "" { deleted() } else { this }'
     input_batch:
       - file_content: ../../certification/fixtures/malformed-canonical-event.json
