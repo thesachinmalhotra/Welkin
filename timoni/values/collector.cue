@@ -10,7 +10,11 @@ package main
 collectorValues: {
   repository: url: "oci://ghcr.io/openmeterio/helm-charts"
   chart: {
-    name:    "benthos-collector"
+    // Use an OCI chart reference with digest for immutability. Flux/HelmRelease accepts OCI chart references
+    // of the form: oci://ghcr.io/openmeterio/helm-charts/benthos-collector@sha256:<digest>
+    // Chart digest (immutable) for v1.0.0-beta.232:
+    // sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841
+    name:    "oci://ghcr.io/openmeterio/helm-charts/benthos-collector@sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841"
     version: runtime.charts.collectorVersion
   }
   sync: targetNamespace: runtime.namespace
