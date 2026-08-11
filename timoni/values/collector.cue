@@ -69,7 +69,7 @@ collectorValues: {
       // Archive output.
       {name: "ARCHIVE_S3_BUCKET", value: runtime.archive.bucket},
       {name: "ARCHIVE_S3_ENDPOINT", value: runtime.archive.endpoint},
-      {name: "ARCHIVE_S3_FORCE_PATH_STYLE", value: (if runtime.archive.forcePathStyle { "true" } else { "false" }) },
+      {name: "ARCHIVE_S3_FORCE_PATH_STYLE", value: if runtime.archive.forcePathStyle { "true" } else { "false"} },
       {name: "ARCHIVE_S3_REGION", value: runtime.archive.region},
       {name: "ARCHIVE_S3_ACCESS_KEY_ID", value: runtime.archive.accessKeyID},
       {name: "ARCHIVE_S3_SECRET_ACCESS_KEY", value: runtime.archive.secretAccessKey},
