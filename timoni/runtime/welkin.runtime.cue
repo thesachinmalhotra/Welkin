@@ -6,8 +6,8 @@ runtime: {
   charts: {
     fluxAioVersion:    *"2.5.0-0" | string
     fluxModuleVersion: *"2.5.0-0" | string
-    openmeterVersion:  *"1.0.0-beta.213" | string
-    collectorVersion:  *"0.0.0" | string
+    openmeterVersion:  *"1.0.0-beta.232" | string // pinned to OpenMeter release v1.0.0-beta.232 (chart digest: sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841)
+    collectorVersion:  *"1.0.0-beta.232" | string // chart appVersion v1.0.0-beta.232 -> image ghcr.io/openmeterio/benthos-collector:v1.0.0-beta.232 (amd64 digest: sha256:4a816108919b77d35209ad9053dca417897bfc463cd6c13ff71262ad35103119)
   }
 
   openmeter: {
