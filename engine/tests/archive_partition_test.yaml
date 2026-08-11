@@ -22,3 +22,19 @@ tests:
                 pod_namespace: acme
                 duration_seconds: 15
                 region: us-east-1
+
+  - name: validates canonical cloudevent contract
+    target_processors: ../config/base.yaml#/processor_resources/0
+    environment: {}
+    input_batch:
+      - file_content: ../fixtures/canonical-event.json
+    output_batches:
+      - - file_json_equals: ../fixtures/canonical-event.json
+
+  - name: rejects malformed canonical cloudevent
+    target_processors: ../config/base.yaml#/processor_resources/0
+    environment: {}
+    input_batch:
+      - file_content: ../../certification/fixtures/malformed-canonical-event.json
+    output_batches:
+      - []

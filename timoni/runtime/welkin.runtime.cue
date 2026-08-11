@@ -5,9 +5,9 @@ runtime: {
 
   charts: {
     fluxAioVersion:    *"2.5.0-0" | string
-    fluxModuleVersion: *"latest" | string
-    openmeterVersion:  *"*" | string
-    collectorVersion:  *"*" | string
+    fluxModuleVersion: *"2.5.0-0" | string
+    openmeterVersion:  *"0.1.0" | string
+    collectorVersion:  *"0.1.0" | string
   }
 
   openmeter: {
