@@ -44,7 +44,7 @@ collectorValues: {
     env: [
       // OpenMeter destination.
       {name: "OPENMETER_URL", value: runtime.openmeter.url},
-      {name: "OPENMETER_TOKEN", value: runtime.openmeter.token},
+      {name: "OPENMETER_TOKEN", value: string @timoni(runtime:string:OPENMETER_TOKEN)},
 
       // Kubernetes preset knobs (still used by our mapping and/or underlying input).
       {name: "SCRAPE_NAMESPACE", value: runtime.collector.scrapeNamespace},
@@ -75,8 +75,8 @@ collectorValues: {
       {name: "ARCHIVE_S3_ENDPOINT", value: runtime.archive.endpoint},
       {name: "ARCHIVE_S3_FORCE_PATH_STYLE", value: runtime.archive.forcePathStyle },
       {name: "ARCHIVE_S3_REGION", value: runtime.archive.region},
-      {name: "ARCHIVE_S3_ACCESS_KEY_ID", value: runtime.archive.accessKeyID},
-      {name: "ARCHIVE_S3_SECRET_ACCESS_KEY", value: runtime.archive.secretAccessKey},
+      {name: "ARCHIVE_S3_ACCESS_KEY_ID", value: string @timoni(runtime:string:ARCHIVE_S3_ACCESS_KEY_ID)},
+      {name: "ARCHIVE_S3_SECRET_ACCESS_KEY", value: string @timoni(runtime:string:ARCHIVE_S3_SECRET_ACCESS_KEY)},
       {name: "ARCHIVE_BATCH_COUNT", value: runtime.archive.batchCount},
       {name: "ARCHIVE_BATCH_PERIOD", value: runtime.archive.batchPeriod},
     ]

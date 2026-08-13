@@ -13,3 +13,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.swp
+
+# rpk test tooling (not part of Welkin; test harness only)
+rpk-linux-amd64.zip
