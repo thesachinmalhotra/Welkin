@@ -237,6 +237,8 @@ spec:
             - dev-container
             - --kafka-addr
             - PLAIN://0.0.0.0:9092
+            - --advertise-kafka-addr
+            - PLAIN://redpanda.openmeter-system.svc.cluster.local:9092
             - --overprovisioned
             - --smp
             - "1"
