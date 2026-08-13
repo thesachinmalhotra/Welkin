@@ -12,7 +12,6 @@ runtime: {
 
   openmeter: {
     url:   *"http://openmeter-api" | string
-    token: *"" | string
   }
 
   collector: {
@@ -38,8 +37,6 @@ runtime: {
     endpoint:       string
     bucket:         string
     region:         *"us-east-1" | string
-    accessKeyID:    string
-    secretAccessKey:string
     forcePathStyle: *true | bool
     batchCount:     *250 | int
     batchPeriod:    *"15s" | string
