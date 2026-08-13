@@ -210,6 +210,7 @@ spec:
       containers:
         - name: openmeter
           image: ghcr.io/openmeterio/openmeter:{OPENMETER_IMAGE_TAG}
+          command: ["/entrypoint.sh", "openmeter"]
           args: ["--config", "/etc/openmeter/config.yaml"]
           ports:
             - containerPort: 8080
