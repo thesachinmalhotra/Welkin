@@ -285,6 +285,13 @@ spec:
       containers:
         - name: clickhouse
           image: clickhouse/clickhouse-server:24.10
+          env:
+            - name: CLICKHOUSE_DB
+              value: default
+            - name: CLICKHOUSE_USER
+              value: default
+            - name: CLICKHOUSE_PASSWORD
+              value: ""
           ports:
             - containerPort: 9000
               name: tcp
