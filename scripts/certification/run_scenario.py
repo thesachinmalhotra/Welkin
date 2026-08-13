@@ -186,7 +186,7 @@ data:
     meters:
       - slug: kubernetes-pod-exec-time
         eventType: kube-pod-exec-time
-        valueProperty: duration_seconds
+        valueProperty: $.duration_seconds
         aggregation: SUM
         windowSize: MINUTE
 ---
