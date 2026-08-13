@@ -192,6 +192,9 @@ data:
     aggregation:
       clickhouse:
         address: clickhouse.openmeter-system.svc.cluster.local:9000
+        username: openmeter
+        password: openmeter
+        database: openmeter
     meters:
       - slug: kubernetes-pod-exec-time
         eventType: kube-pod-exec-time
@@ -287,11 +290,11 @@ spec:
           image: clickhouse/clickhouse-server:24.10
           env:
             - name: CLICKHOUSE_DB
-              value: default
+              value: openmeter
             - name: CLICKHOUSE_USER
-              value: default
+              value: openmeter
             - name: CLICKHOUSE_PASSWORD
-              value: ""
+              value: openmeter
           ports:
             - containerPort: 9000
               name: tcp
