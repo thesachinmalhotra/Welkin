@@ -28,10 +28,10 @@ catalog: {
 			id: "canonical-event-boundary"
 			title: "One canonical CloudEvent boundary"
 			claim: "Every producer becomes one canonical CloudEvent before downstream consumers see it."
-			verification: "Validate the canonical CloudEvent contract and the collector's canonicalization path."
-			status: "implemented"
+			verification: "Validate the canonical CloudEvent contract, deploy the collector to a clean cluster, generate an observable event, and confirm receipt in both economic and archive planes."
+			status: "scaffolded"
 			scenarios: ["canonical-flow"]
-			evidence: ["cue-vet output", "collector fixture output", "workflow summary", "artifact bundle"]
+			evidence: ["cue-vet output", "collector fixture output", "workflow summary", "artifact bundle", "OpenMeter assertion", "MinIO parquet assertion"]
 		}
 
 		malformed_event_rejection: #Guarantee & {
@@ -89,12 +89,20 @@ catalog: {
 		canonical_flow: #Scenario & {
 			id: "canonical-flow"
 			title: "Canonical flow from clean environment"
-			purpose: "Certify the baseline happy path and clean-room deployment behavior."
+			purpose: "Certify the baseline happy path and clean-room deployment behavior with end-to-end assertions."
 			mode: "mock-prod"
-			status: "implemented"
+			status: "scaffolded"
 			guarantees: ["canonical-event-boundary", "clean-room-reproducibility"]
-			verification: ["provision a fresh kind cluster", "apply the Welkin bundle", "inject one annotated Kubernetes workload", "capture cluster state and collector logs"]
-			evidence: ["kind cluster state", "Timoni rendered bundle", "kubectl resource snapshot", "collector logs", "workflow summary"]
+			verification: [
+				"provision a fresh kind cluster",
+				"deploy MinIO and OpenMeter",
+				"apply the Welkin bundle via Timoni",
+				"generate an observable Kubernetes exec event",
+				"assert event receipt in OpenMeter (economic plane)",
+				"assert parquet file creation in MinIO (archive plane)",
+				"capture cluster state and collector logs",
+			]
+			evidence: ["kind cluster state", "Timoni rendered bundle", "kubectl resource snapshot", "collector logs", "OpenMeter assertion", "MinIO parquet assertion", "workflow summary"]
 		}
 
 		malformed_boundary: #Scenario & {
