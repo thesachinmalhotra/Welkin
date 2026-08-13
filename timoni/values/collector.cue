@@ -1,12 +1,10 @@
 package main
 
-// Collector behavior is defined by a single source of truth:
-// `engine/config/base.yaml`.
-//
-// Timoni/Helm supplies Environment State via env vars and chart values.
+// Collector behavior is defined inline here as a CUE map.
+// The chart renders `config` as a Secret at /etc/benthos/config.yaml.
+// Schema and Bloblang resources are inlined (no file:// dependencies).
+// Environment State is supplied via env vars and @timoni runtime attributes.
 
-// NOTE: We use `configFile` rather than inline `config` to keep a single
-// authoritative collector config in `engine/config/base.yaml`.
 collectorValues: {
   repository: url: "oci://ghcr.io/openmeterio/helm-charts"
   chart: {
@@ -80,6 +78,112 @@ collectorValues: {
       {name: "ARCHIVE_BATCH_COUNT", value: runtime.archive.batchCount},
       {name: "ARCHIVE_BATCH_PERIOD", value: runtime.archive.batchPeriod},
     ]
-    configFile: "welkin/config/base.yaml"
+    config: {
+      logger: {
+        level:           "${LOG_LEVEL:INFO}"
+        format:          "${LOG_FORMAT:json}"
+        static_fields: {
+          service:  "welkin-collector"
+          instance: "${K8S_APP_INSTANCE:}"
+          version:  "${K8S_APP_VERSION:}"
+        }
+      }
+      http: {
+        enabled:         true
+        address:         "0.0.0.0:4195"
+        debug_endpoints: false
+      }
+      metrics: {
+        prometheus: {
+          add_process_metrics: true
+        }
+      }
+      shutdown_delay:   "${SHUTDOWN_DELAY:5s}"
+      shutdown_timeout: "${SHUTDOWN_TIMEOUT:20s}"
+      pipeline: {
+        processors: [
+          {resource: "welkin_validate_cloudevent"},
+          {catch: [
+            {log: {level: "ERROR", message: "Dropping invalid canonical event due to: ${! error() }"}},
+            {mapping: "root = deleted()"},
+          ]},
+        ]
+      }
+      output: {
+        broker: {
+          pattern: "fan_out"
+          outputs: [
+            {resource: "welkin_economic_openmeter"},
+            {drop_on: {back_pressure: "30s", output: {resource: "welkin_archive_s3"}}},
+          ]
+        }
+      }
+      processor_resources: [
+        {label: "welkin_validate_cloudevent", json_schema: {schema: """
+          {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://welkin.dev/schema/cloudevent.json",
+            "title": "WelkinCanonicalCloudEvent",
+            "type": "object",
+            "required": ["id", "specversion", "type", "source", "time", "subject", "data"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "specversion": { "const": "1.0" },
+              "type": { "type": "string", "minLength": 1 },
+              "source": { "type": "string", "minLength": 1 },
+              "time": { "type": "string", "minLength": 1 },
+              "subject": { "type": "string", "minLength": 1 },
+              "data": { "type": "object" }
+            },
+            "additionalProperties": true
+          }
+          """}},
+      ]
+      output_resources: [
+        {label: "welkin_economic_openmeter", openmeter: {url: "${OPENMETER_URL:http://openmeter-api}", token: "${OPENMETER_TOKEN:}"}},
+        {label: "welkin_archive_s3", aws_s3: {
+          bucket:                "${ARCHIVE_S3_BUCKET:welkin-archive}"
+          path:                  "welkin/source=${! json(\"partition.source\") }/type=${! json(\"partition.eventType\") }/day=${! json(\"partition.day\") }/${! uuid_v4() }.parquet"
+          endpoint:              "${ARCHIVE_S3_ENDPOINT:http://minio.minio.svc.cluster.local:9000}"
+          force_path_style_urls: "${ARCHIVE_S3_FORCE_PATH_STYLE:true}"
+          region:                "${ARCHIVE_S3_REGION:us-east-1}"
+          credentials:           {id: "${ARCHIVE_S3_ACCESS_KEY_ID:}", secret: "${ARCHIVE_S3_SECRET_ACCESS_KEY:}"}
+          processors: [{mapping: """
+            root = {
+              "partition": {
+                "source": this.source,
+                "eventType": this.type,
+                "day": this.time.string().slice(0, 10)
+              },
+              "event": this
+            }
+            """}]
+          batching: {
+            count:  "${ARCHIVE_BATCH_COUNT:250}"
+            period: "${ARCHIVE_BATCH_PERIOD:15s}"
+            processors: [{parquet_encode: {
+              schema: [
+                {name: "partition", fields: [
+                  {name: "source", type: "UTF8"},
+                  {name: "eventType", type: "UTF8"},
+                  {name: "day", type: "UTF8"},
+                ]},
+                {name: "event", fields: [
+                  {name: "id", type: "UTF8"},
+                  {name: "specversion", type: "UTF8"},
+                  {name: "type", type: "UTF8"},
+                  {name: "source", type: "UTF8"},
+                  {name: "time", type: "UTF8"},
+                  {name: "subject", type: "UTF8"},
+                  {name: "data", type: "JSON"},
+                ]},
+              ]
+              default_compression:    "zstd"
+              default_timestamp_unit: "MICROSECOND"
+            }}]
+          }
+        }},
+      ]
+    }
   }
 }
