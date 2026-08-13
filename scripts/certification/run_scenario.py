@@ -306,6 +306,51 @@ def create_minio_bucket(artifact_dir: Path) -> None:
     )
 
 
+def capture_failure_diagnostics(artifact_dir: Path) -> None:
+    """Capture cluster diagnostics on failure. All commands are best-effort."""
+    diag_dir = artifact_dir / "diagnostics"
+    diag_dir.mkdir(parents=True, exist_ok=True)
+    diagnostics = [
+        (["kubectl", "get", "deployments", "-A"], "get-deployments.log"),
+        (["kubectl", "describe", "deployments", "-A"], "describe-deployments.log"),
+        (["kubectl", "get", "pods", "-A"], "get-pods.log"),
+        (["kubectl", "describe", "pods", "-A"], "describe-pods.log"),
+        (
+            ["kubectl", "get", "events", "-A", "--sort-by=.metadata.creationTimestamp"],
+            "get-events.log",
+        ),
+        (
+            [
+                "kubectl",
+                "logs",
+                "-n",
+                "openmeter-system",
+                "deployment/openmeter",
+                "--tail=200",
+            ],
+            "openmeter-logs.log",
+        ),
+        (
+            [
+                "kubectl",
+                "logs",
+                "-n",
+                "openmeter-system",
+                "deployment/openmeter",
+                "--tail=200",
+                "--previous",
+            ],
+            "openmeter-logs-previous.log",
+        ),
+        (
+            ["kubectl", "get", "pods", "-n", "openmeter-system", "-o", "yaml"],
+            "openmeter-pods-yaml.log",
+        ),
+    ]
+    for cmd, log_name in diagnostics:
+        run_command(cmd, diag_dir, log_name, allow_failure=True, include_output=True)
+
+
 def setup_openmeter(artifact_dir: Path) -> None:
     run_command(
         ["kubectl", "apply", "-f", "-"],
@@ -571,6 +616,7 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
 
     except Exception as exc:
         notes.append(str(exc))
+        capture_failure_diagnostics(artifact_dir)
         result = "failed"
     else:
         if openmeter_ok and parquet_ok:
