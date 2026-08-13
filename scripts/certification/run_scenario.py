@@ -189,6 +189,9 @@ data:
     sink:
       kafka:
         brokers: redpanda.openmeter-system.svc.cluster.local:9092
+    aggregation:
+      clickhouse:
+        address: clickhouse.openmeter-system.svc.cluster.local:9000
     meters:
       - slug: kubernetes-pod-exec-time
         eventType: kube-pod-exec-time
@@ -245,6 +248,48 @@ spec:
           ports:
             - containerPort: 9092
               name: kafka
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: openmeter-system
+spec:
+  selector:
+    app: clickhouse
+  ports:
+    - name: http
+      port: 8123
+      targetPort: 8123
+    - name: tcp
+      port: 9000
+      targetPort: 9000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+  namespace: openmeter-system
+  labels:
+    app: clickhouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+    spec:
+      containers:
+        - name: clickhouse
+          image: clickhouse/clickhouse-server:24.10
+          ports:
+            - containerPort: 9000
+              name: tcp
+            - containerPort: 8123
+              name: http
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -432,6 +477,19 @@ def setup_openmeter(artifact_dir: Path) -> None:
         ],
         artifact_dir,
         "redpanda-wait.log",
+    )
+    run_command(
+        [
+            "kubectl",
+            "wait",
+            "--for=condition=available",
+            "deployment/clickhouse",
+            "-n",
+            "openmeter-system",
+            "--timeout=120s",
+        ],
+        artifact_dir,
+        "clickhouse-wait.log",
     )
     run_command(
         [
