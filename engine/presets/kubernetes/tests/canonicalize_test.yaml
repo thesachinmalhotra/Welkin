@@ -66,5 +66,4 @@ tests:
         metadata:
           schedule_time: "2026-07-27T00:00:15Z"
           schedule_interval: "15s"
-    output_batches:
-      - []
+    output_batches: []

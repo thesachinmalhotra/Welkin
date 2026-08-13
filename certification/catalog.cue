@@ -91,7 +91,7 @@ catalog: {
 			title: "Canonical flow from clean environment"
 			purpose: "Certify the baseline happy path and clean-room deployment behavior with end-to-end assertions."
 			mode: "mock-prod"
-			status: "scaffolded"
+			status: "implemented"
 			guarantees: ["canonical-event-boundary", "clean-room-reproducibility"]
 			verification: [
 				"provision a fresh kind cluster",
