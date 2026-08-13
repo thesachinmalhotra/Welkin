@@ -209,7 +209,7 @@ spec:
     spec:
       containers:
         - name: openmeter
-          image: ghcr.io/openmeterio/openmeter:1.0.0-beta.232
+          image: ghcr.io/openmeterio/openmeter:{OPENMETER_IMAGE_TAG}
           args: ["--config", "/etc/openmeter/config.yaml"]
           ports:
             - containerPort: 8080
@@ -351,12 +351,17 @@ def capture_failure_diagnostics(artifact_dir: Path) -> None:
         run_command(cmd, diag_dir, log_name, allow_failure=True, include_output=True)
 
 
+def openmeter_image_tag() -> str:
+    chart_version = os.environ.get("OPENMETER_CHART_VERSION", "1.0.0-beta.232")
+    return f"v{chart_version}" if not chart_version.startswith("v") else chart_version
+
+
 def setup_openmeter(artifact_dir: Path) -> None:
     run_command(
         ["kubectl", "apply", "-f", "-"],
         artifact_dir,
         "openmeter-manifest.log",
-        stdin_text=OPENMETER_MANIFEST,
+        stdin_text=OPENMETER_MANIFEST.format(OPENMETER_IMAGE_TAG=openmeter_image_tag()),
     )
     run_command(
         [
