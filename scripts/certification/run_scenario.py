@@ -164,18 +164,6 @@ spec:
     - name: console
       port: 9001
       targetPort: 9001
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: minio-data
-  namespace: minio
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
 """
 
 
