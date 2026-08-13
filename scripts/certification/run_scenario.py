@@ -183,12 +183,66 @@ data:
       port: 8080
     storage:
       driver: memory
+    ingest:
+      kafka:
+        broker: redpanda.openmeter-system.svc.cluster.local:9092
+    sink:
+      kafka:
+        brokers: redpanda.openmeter-system.svc.cluster.local:9092
     meters:
       - slug: kubernetes-pod-exec-time
         eventType: kube-pod-exec-time
         valueProperty: $.duration_seconds
         aggregation: SUM
         windowSize: MINUTE
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redpanda
+  namespace: openmeter-system
+spec:
+  selector:
+    app: redpanda
+  ports:
+    - name: kafka
+      port: 9092
+      targetPort: 9092
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redpanda
+  namespace: openmeter-system
+  labels:
+    app: redpanda
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redpanda
+  template:
+    metadata:
+      labels:
+        app: redpanda
+    spec:
+      containers:
+        - name: redpanda
+          image: docker.redpanda.com/redpandadata/redpanda:v26.1.15
+          command:
+            - rpk
+            - redpanda
+            - start
+            - --mode
+            - dev-container
+            - --kafka-addr
+            - PLAIN://0.0.0.0:9092
+            - --overprovisioned
+            - --smp
+            - "1"
+          ports:
+            - containerPort: 9092
+              name: kafka
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -363,6 +417,19 @@ def setup_openmeter(artifact_dir: Path) -> None:
         artifact_dir,
         "openmeter-manifest.log",
         stdin_text=OPENMETER_MANIFEST.format(OPENMETER_IMAGE_TAG=openmeter_image_tag()),
+    )
+    run_command(
+        [
+            "kubectl",
+            "wait",
+            "--for=condition=available",
+            "deployment/redpanda",
+            "-n",
+            "openmeter-system",
+            "--timeout=120s",
+        ],
+        artifact_dir,
+        "redpanda-wait.log",
     )
     run_command(
         [
