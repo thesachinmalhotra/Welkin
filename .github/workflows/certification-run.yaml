@@ -6,82 +6,55 @@ on:
       scenario_id:
         required: true
         type: string
-      environment_name:
-        required: false
-        type: string
-        default: certification
-  workflow_dispatch:
-    inputs:
-      scenario_id:
-        description: Certification scenario id
-        required: true
-        type: string
-      environment_name:
-        description: GitHub environment name
-        required: false
-        type: string
-        default: certification
 
 jobs:
   certify:
-    runs-on: ubuntu-22.04
-    environment: ${{ inputs.environment_name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENMETER_TOKEN: "cert-test-token"
+      ARCHIVE_S3_ACCESS_KEY_ID: "minio"
+      ARCHIVE_S3_SECRET_ACCESS_KEY: "minio123"
+      ARCHIVE_S3_BUCKET: "welkin-archive"
+      ARCHIVE_S3_REGION: "us-east-1"
+
     steps:
-      - name: Check out repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install tooling
+      - name: Install Go tools
         run: |
-          go install cuelang.org/go/cmd/cue@v0.4.0
-          go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
-          # rpk: test-only tooling for connect/mapping tests. Not the production OpenMeter Collector.
-          curl -LO https://github.com/redpanda-data/redpanda/releases/download/v26.2.1/rpk-linux-amd64.zip
-          unzip -o rpk-linux-amd64.zip -d /tmp/rpk
-          sudo install /tmp/rpk/rpk /usr/local/bin/rpk
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64
+          go install cuelang.org/go/cmd/cue@latest
+          go install github.com/stefanprodan/timoni/cmd/timoni@latest
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
-          export KUBECTL_VERSION=v1.36.3
-          curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/kubectl
 
-      - name: Export certification catalog
-        run: ~/go/bin/cue export certification/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
+      - name: Install rpk
+        run: |
+          curl -LO https://github.com/redpanda-data/redpanda/releases/latest/download/rpk-linux-amd64.zip
+          unzip rpk-linux-amd64.zip -d /tmp/rpk
+          sudo mv /tmp/rpk/rpk /usr/local/bin/rpk
+          rm -rf rpk-linux-amd64.zip /tmp/rpk
 
-      - name: Validate certification catalog
-        run: python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
-
-      - name: Select scenario
-        run: python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json --scenario "${{ inputs.scenario_id }}" --output /tmp/welkin-certification-scenario.json
-
-      - name: Prepare evidence directory
-        run: mkdir -p artifacts/certification/${{ inputs.scenario_id }}
+      - name: Export catalog
+        run: |
+          cue eval -e 'catalog' certification/catalog.cue --out json -o certification/catalog.json
 
       - name: Run certification scenario
         run: |
-          python scripts/certification/run_scenario.py \
-            --catalog /tmp/welkin-certification-catalog.json \
-            --scenario /tmp/welkin-certification-scenario.json \
-            --artifact-dir artifacts/certification/${{ inputs.scenario_id }}
+          mkdir -p artifacts
+          python3 scripts/certification/run_scenario.py \
+            --catalog certification/catalog.json \
+            --scenario "certification/scenarios/${{ inputs.scenario_id }}.json" \
+            --artifact-dir artifacts/
 
-      - name: Publish evidence summary
-        if: always()
-        run: cat artifacts/certification/${{ inputs.scenario_id }}/summary.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload evidence package
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: certification-${{ inputs.scenario_id }}-${{ github.run_id }}
-          path: artifacts/certification/${{ inputs.scenario_id }}
+          name: certification-${{ inputs.scenario_id }}
+          path: artifacts/
+          retention-days: 30
