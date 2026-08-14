@@ -17,7 +17,10 @@ openmeterValues: {
         eventType:     "kube-pod-exec-time"
         valueProperty: "$.duration_seconds"
         aggregation:   "SUM"
-        windowSize:    "MINUTE"
+        groupBy: {
+          pod_name:      "$.pod_name"
+          pod_namespace: "$.pod_namespace"
+        }
       },
     ]
   }
