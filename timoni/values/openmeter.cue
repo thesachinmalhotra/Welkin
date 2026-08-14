@@ -14,6 +14,7 @@ openmeterValues: {
     config: meters: [
       {
         slug:          "kubernetes-pod-exec-time"
+        description:   "Kubernetes pod exec time"
         eventType:     "kube-pod-exec-time"
         valueProperty: "$.duration_seconds"
         aggregation:   "SUM"
