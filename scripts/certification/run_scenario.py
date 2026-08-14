@@ -269,6 +269,19 @@ def capture_failure_diagnostics(artifact_dir: Path) -> None:
             ["kubectl", "get", "pods", "-n", "welkin-system", "-o", "yaml"],
             "openmeter-pods-yaml.log",
         ),
+        (
+            [
+                "kubectl",
+                "get",
+                "configmap",
+                "openmeter",
+                "-n",
+                "welkin-system",
+                "-o",
+                "yaml",
+            ],
+            "openmeter-configmap.log",
+        ),
     ]
     for cmd, log_name in diagnostics:
         run_command(cmd, diag_dir, log_name, allow_failure=True, include_output=True)
@@ -403,6 +416,160 @@ def assert_parquet_in_minio(artifact_dir: Path) -> bool:
     return has_parquet
 
 
+def _wait_for_readiness_with_diagnostics(artifact_dir: Path) -> None:
+    """Wait for pods to become ready, capturing diagnostics on failure.
+
+    Instead of relying on timoni --wait (which blocks until timeout and loses
+    pod logs), we poll ourselves and grab logs + configmap on first failure.
+    """
+    diag_dir = artifact_dir / "diagnostics"
+    diag_dir.mkdir(parents=True, exist_ok=True)
+    deadline = time.time() + 20 * 60  # 20 minute overall budget
+    captured = False
+    while time.time() < deadline:
+        result = subprocess.run(
+            [
+                "kubectl",
+                "get",
+                "pods",
+                "-n",
+                "welkin-system",
+                "-o",
+                "jsonpath={range .items[*]}{.metadata.name}={.status.phase} {end}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        pods = result.stdout.strip()
+        if not pods:
+            time.sleep(5)
+            continue
+
+        phases = [entry.split("=", 1)[1] for entry in pods.split() if "=" in entry]
+        all_running = all(p == "Running" for p in phases)
+
+        # Check if any pod is in a terminal failure state
+        fail_result = subprocess.run(
+            [
+                "kubectl",
+                "get",
+                "pods",
+                "-n",
+                "welkin-system",
+                "-o",
+                "jsonpath={range .items[*]}{.metadata.name}={.status.phase} {end}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        has_failed = any(
+            p in ("Failed", "Unknown")
+            for p in [
+                e.split("=", 1)[1]
+                for e in fail_result.stdout.strip().split()
+                if "=" in e
+            ]
+        )
+
+        # Capture early diagnostics if any pod is not Running or has crashed
+        if not captured and (has_failed or not all_running):
+            # Give pods a moment to settle, then capture immediately
+            time.sleep(10)
+            for cmd, name in [
+                (
+                    ["kubectl", "get", "pods", "-n", "welkin-system"],
+                    "get-pods.log",
+                ),
+                (
+                    [
+                        "kubectl",
+                        "get",
+                        "events",
+                        "-A",
+                        "--sort-by=.metadata.creationTimestamp",
+                    ],
+                    "get-events.log",
+                ),
+                (
+                    [
+                        "kubectl",
+                        "logs",
+                        "-n",
+                        "welkin-system",
+                        "deployment/openmeter-api",
+                        "--tail=200",
+                    ],
+                    "openmeter-logs.log",
+                ),
+                (
+                    [
+                        "kubectl",
+                        "logs",
+                        "-n",
+                        "welkin-system",
+                        "deployment/openmeter-api",
+                        "--tail=200",
+                        "--previous",
+                    ],
+                    "openmeter-logs-previous.log",
+                ),
+                (
+                    [
+                        "kubectl",
+                        "get",
+                        "configmap",
+                        "openmeter",
+                        "-n",
+                        "welkin-system",
+                        "-o",
+                        "yaml",
+                    ],
+                    "openmeter-configmap.log",
+                ),
+                (
+                    [
+                        "kubectl",
+                        "describe",
+                        "pods",
+                        "-n",
+                        "welkin-system",
+                    ],
+                    "describe-pods.log",
+                ),
+            ]:
+                r = subprocess.run(cmd, capture_output=True, text=True)
+                write_text(
+                    diag_dir / name,
+                    command_log(cmd, r.returncode, r.stdout, r.stderr),
+                )
+            captured = True
+
+        if all_running:
+            # Check openmeter-api readiness specifically
+            ready_result = subprocess.run(
+                [
+                    "kubectl",
+                    "get",
+                    "deployment",
+                    "openmeter-api",
+                    "-n",
+                    "welkin-system",
+                    "-o",
+                    "jsonpath={.status.readyReplicas}",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            ready = ready_result.stdout.strip()
+            if ready and ready != "0" and ready != "<none>":
+                return
+        time.sleep(10)
+
+    raise RuntimeError(
+        "timonibundle apply: pods did not become ready within 20 minutes"
+    )
+
+
 def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
     notes: list[str] = []
     overlay = build_overlay()
@@ -450,30 +617,13 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
                 "-f",
                 str(overlay),
                 "--runtime-from-env",
-                "--wait",
-                "--timeout=20m",
             ],
             artifact_dir,
             "timoni-apply.log",
             include_output=False,
         )
 
-        run_command(
-            [
-                "kubectl",
-                "wait",
-                "--for=condition=ready",
-                "pod",
-                "-l",
-                "app.kubernetes.io/name=collector",
-                "-n",
-                "welkin-system",
-                "--timeout=120s",
-            ],
-            artifact_dir,
-            "collector-wait.log",
-            allow_failure=True,
-        )
+        _wait_for_readiness_with_diagnostics(artifact_dir)
 
         event_id = generate_exec_event(artifact_dir)
         notes.append(f"generated event_id: {event_id}")
