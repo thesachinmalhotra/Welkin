@@ -109,13 +109,13 @@ runtime: {{
 MINIO_MANIFEST = """apiVersion: v1
 kind: Namespace
 metadata:
-  name: minio
+  name: welkin-system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minio
-  namespace: minio
+  namespace: welkin-system
   labels:
     app: minio
 spec:
@@ -153,7 +153,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: minio
-  namespace: minio
+  namespace: welkin-system
 spec:
   selector:
     app: minio
@@ -164,195 +164,6 @@ spec:
     - name: console
       port: 9001
       targetPort: 9001
-"""
-
-
-OPENMETER_MANIFEST = """apiVersion: v1
-kind: Namespace
-metadata:
-  name: openmeter-system
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: openmeter-config
-  namespace: openmeter-system
-data:
-  config.yaml: |
-    server:
-      port: 8080
-    storage:
-      driver: memory
-    ingest:
-      kafka:
-        broker: redpanda.openmeter-system.svc.cluster.local:9092
-    sink:
-      kafka:
-        brokers: redpanda.openmeter-system.svc.cluster.local:9092
-    aggregation:
-      clickhouse:
-        address: clickhouse.openmeter-system.svc.cluster.local:9000
-        username: openmeter
-        password: openmeter
-        database: openmeter
-    meters:
-      - slug: kubernetes-pod-exec-time
-        eventType: kube-pod-exec-time
-        valueProperty: $.duration_seconds
-        aggregation: SUM
-        windowSize: MINUTE
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: redpanda
-  namespace: openmeter-system
-spec:
-  selector:
-    app: redpanda
-  ports:
-    - name: kafka
-      port: 9092
-      targetPort: 9092
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: redpanda
-  namespace: openmeter-system
-  labels:
-    app: redpanda
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: redpanda
-  template:
-    metadata:
-      labels:
-        app: redpanda
-    spec:
-      containers:
-        - name: redpanda
-          image: docker.redpanda.com/redpandadata/redpanda:v26.1.15
-          command:
-            - rpk
-            - redpanda
-            - start
-            - --mode
-            - dev-container
-            - --kafka-addr
-            - PLAIN://0.0.0.0:9092
-            - --advertise-kafka-addr
-            - PLAIN://redpanda.openmeter-system.svc.cluster.local:9092
-            - --overprovisioned
-            - --smp
-            - "1"
-          ports:
-            - containerPort: 9092
-              name: kafka
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: clickhouse
-  namespace: openmeter-system
-spec:
-  selector:
-    app: clickhouse
-  ports:
-    - name: http
-      port: 8123
-      targetPort: 8123
-    - name: tcp
-      port: 9000
-      targetPort: 9000
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: clickhouse
-  namespace: openmeter-system
-  labels:
-    app: clickhouse
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: clickhouse
-  template:
-    metadata:
-      labels:
-        app: clickhouse
-    spec:
-      containers:
-        - name: clickhouse
-          image: clickhouse/clickhouse-server:24.10
-          env:
-            - name: CLICKHOUSE_DB
-              value: openmeter
-            - name: CLICKHOUSE_USER
-              value: openmeter
-            - name: CLICKHOUSE_PASSWORD
-              value: openmeter
-          ports:
-            - containerPort: 9000
-              name: tcp
-            - containerPort: 8123
-              name: http
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: openmeter
-  namespace: openmeter-system
-  labels:
-    app: openmeter
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: openmeter
-  template:
-    metadata:
-      labels:
-        app: openmeter
-    spec:
-      containers:
-        - name: openmeter
-          image: ghcr.io/openmeterio/openmeter:{OPENMETER_IMAGE_TAG}
-          command: ["/entrypoint.sh", "openmeter"]
-          args: ["--config", "/etc/openmeter/config.yaml"]
-          ports:
-            - containerPort: 8080
-              name: http
-          readinessProbe:
-            httpGet:
-              path: /api/v1/meters
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 5
-          volumeMounts:
-            - name: config
-              mountPath: /etc/openmeter/config.yaml
-              subPath: config.yaml
-      volumes:
-        - name: config
-          configMap:
-            name: openmeter-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: openmeter-api
-  namespace: openmeter-system
-spec:
-  selector:
-    app: openmeter
-  ports:
-    - name: http
-      port: 8080
-      targetPort: 8080
 """
 
 
@@ -370,7 +181,7 @@ def setup_minio(artifact_dir: Path) -> None:
             "--for=condition=available",
             "deployment/minio",
             "-n",
-            "minio",
+            "welkin-system",
             "--timeout=120s",
         ],
         artifact_dir,
@@ -384,7 +195,7 @@ def create_minio_bucket(artifact_dir: Path) -> None:
             "kubectl",
             "exec",
             "-n",
-            "minio",
+            "welkin-system",
             "deployment/minio",
             "--",
             "mc",
@@ -404,7 +215,7 @@ def create_minio_bucket(artifact_dir: Path) -> None:
             "kubectl",
             "exec",
             "-n",
-            "minio",
+            "welkin-system",
             "deployment/minio",
             "--",
             "mc",
@@ -436,8 +247,8 @@ def capture_failure_diagnostics(artifact_dir: Path) -> None:
                 "kubectl",
                 "logs",
                 "-n",
-                "openmeter-system",
-                "deployment/openmeter",
+                "welkin-system",
+                "deployment/openmeter-api",
                 "--tail=200",
             ],
             "openmeter-logs.log",
@@ -447,73 +258,20 @@ def capture_failure_diagnostics(artifact_dir: Path) -> None:
                 "kubectl",
                 "logs",
                 "-n",
-                "openmeter-system",
-                "deployment/openmeter",
+                "welkin-system",
+                "deployment/openmeter-api",
                 "--tail=200",
                 "--previous",
             ],
             "openmeter-logs-previous.log",
         ),
         (
-            ["kubectl", "get", "pods", "-n", "openmeter-system", "-o", "yaml"],
+            ["kubectl", "get", "pods", "-n", "welkin-system", "-o", "yaml"],
             "openmeter-pods-yaml.log",
         ),
     ]
     for cmd, log_name in diagnostics:
         run_command(cmd, diag_dir, log_name, allow_failure=True, include_output=True)
-
-
-def openmeter_image_tag() -> str:
-    chart_version = os.environ.get("OPENMETER_CHART_VERSION", "1.0.0-beta.232")
-    return f"v{chart_version}" if not chart_version.startswith("v") else chart_version
-
-
-def setup_openmeter(artifact_dir: Path) -> None:
-    run_command(
-        ["kubectl", "apply", "-f", "-"],
-        artifact_dir,
-        "openmeter-manifest.log",
-        stdin_text=OPENMETER_MANIFEST.format(OPENMETER_IMAGE_TAG=openmeter_image_tag()),
-    )
-    run_command(
-        [
-            "kubectl",
-            "wait",
-            "--for=condition=available",
-            "deployment/redpanda",
-            "-n",
-            "openmeter-system",
-            "--timeout=120s",
-        ],
-        artifact_dir,
-        "redpanda-wait.log",
-    )
-    run_command(
-        [
-            "kubectl",
-            "wait",
-            "--for=condition=available",
-            "deployment/clickhouse",
-            "-n",
-            "openmeter-system",
-            "--timeout=120s",
-        ],
-        artifact_dir,
-        "clickhouse-wait.log",
-    )
-    run_command(
-        [
-            "kubectl",
-            "wait",
-            "--for=condition=available",
-            "deployment/openmeter",
-            "-n",
-            "openmeter-system",
-            "--timeout=120s",
-        ],
-        artifact_dir,
-        "openmeter-wait.log",
-    )
 
 
 def generate_exec_event(artifact_dir: Path) -> str:
@@ -580,13 +338,13 @@ def assert_openmeter_received(artifact_dir: Path, event_id: str) -> bool:
             "kubectl",
             "exec",
             "-n",
-            "openmeter-system",
-            "deployment/openmeter",
+            "welkin-system",
+            "deployment/openmeter-api",
             "--",
             "wget",
             "-q",
             "-O-",
-            "http://localhost:8080/api/v1/meters/kubernetes-pod-exec-time/values",
+            "http://localhost:80/api/v1/meters/kubernetes-pod-exec-time/values",
         ],
         artifact_dir,
         "openmeter-query.log",
@@ -631,7 +389,7 @@ def assert_parquet_in_minio(artifact_dir: Path) -> bool:
                 "kubectl",
                 "exec",
                 "-n",
-                "minio",
+                "welkin-system",
                 "deployment/minio",
                 "--",
                 "ls",
@@ -675,7 +433,6 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
 
         setup_minio(artifact_dir)
         create_minio_bucket(artifact_dir)
-        setup_openmeter(artifact_dir)
 
         run_command(
             [
