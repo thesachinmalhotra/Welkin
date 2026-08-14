@@ -6,7 +6,10 @@ openmeterValues: {
     name:    "openmeter"
     version: runtime.charts.openmeterVersion
   }
-  sync: targetNamespace: runtime.namespace
+  sync: {
+    targetNamespace: runtime.namespace
+    timeout:         15
+  }
   helmValues: {
     config: meters: [
       {
