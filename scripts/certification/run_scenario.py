@@ -451,7 +451,7 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
                 str(overlay),
                 "--runtime-from-env",
                 "--wait",
-                "--timeout=10m",
+                "--timeout=15m",
             ],
             artifact_dir,
             "timoni-apply.log",
