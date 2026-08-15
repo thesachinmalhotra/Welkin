@@ -19,6 +19,9 @@ openmeterValues: {
         sslMode: "disable"
       }
     }
+    svix: {
+      enabled: false
+    }
     config: meters: [
       {
         slug:          "kubernetes-pod-exec-time"
