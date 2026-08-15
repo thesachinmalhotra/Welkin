@@ -11,6 +11,14 @@ openmeterValues: {
     timeout:         15
   }
   helmValues: {
+    postgresql: {
+      auth: {
+        postgresPassword: "postgres"
+        username: "application"
+        password: "application"
+        sslMode: "disable"
+      }
+    }
     config: meters: [
       {
         slug:          "kubernetes-pod-exec-time"
