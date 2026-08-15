@@ -25,7 +25,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
-          EXPECTED_CHART_DIGEST: "sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841"
+          EXPECTED_CHART_DIGEST: "sha256:b3acaf3307293043422f0465bcaba45e551a927068a00328e97f119387871e50"
           CHART_REPO: "openmeterio/helm-charts"
           CHART_NAME: "benthos-collector"
           CHART_TAG: "1.0.0-beta.232"
