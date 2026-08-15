@@ -402,11 +402,11 @@ def generate_exec_event(artifact_dir: Path) -> str:
             "--post-data",
             cloud_event,
             "--header",
-            "Content-Type: application/json",
-            "http://localhost:80/api/v1/events",
+            "Content-Type: application/cloudevents+json",
+            "http://openmeter-collector:4195/events",
         ],
         artifact_dir,
-        "openmeter-ingest.log",
+        "openmeter-collector-ingest.log",
     )
     run_command(["sleep", "10"], artifact_dir, "event-settle.log")
     return event_id
@@ -448,11 +448,30 @@ def assert_openmeter_received(artifact_dir: Path, event_id: str) -> bool:
 
 
 def assert_parquet_in_minio(artifact_dir: Path) -> bool:
+    result = run_command(
+        [
+            "kubectl",
+            "exec",
+            "-n",
+            "welkin-system",
+            "deployment/minio",
+            "--",
+            "mc",
+            "find",
+            "local/welkin-archive",
+            "--name",
+            "*.parquet",
+        ],
+        artifact_dir,
+        "minio-find.log",
+        allow_failure=True,
+    )
+    output = (result.stdout + result.stderr).strip()
     write_text(
         artifact_dir / "minio-assertion.txt",
-        "parquet_found: skipped\nreason: archive pipeline not yet wired\n",
+        f"parquet_found: {'true' if '.parquet' in output else 'false'}\nminio_output: {output}\n",
     )
-    return True
+    return ".parquet" in output
 
 
 def _wait_for_readiness_with_diagnostics(artifact_dir: Path) -> None:

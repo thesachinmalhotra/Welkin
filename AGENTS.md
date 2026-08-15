@@ -276,6 +276,57 @@ If the repository contains conflicting state or an uncommitted change, stop and 
 
 ---
 
+## Engineering Process
+
+These conventions apply to all contributors — humans and AI agents.
+
+### Commits
+
+Every commit must follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+```
+
+**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+**Scopes:** `cert`, `openmeter`, `collector`, `flux`, `timoni`, `ci`, `certification`, `contracts`
+
+**Rules:** subject max 72 chars, no period, imperative mood, no `@latest`.
+
+Enforced by `.commitlintrc.json` and `.pre-commit-config.yaml`.
+
+### Before pushing
+
+1. Run relevant local validation (CUE vet, rpk connect test, timoni bundle vet, Python compile check).
+2. No CI run until local checks are green.
+3. Follow the PR template (`.github/PULL_REQUEST_TEMPLATE.md`).
+
+### File organization
+
+| Path | What lives here |
+|---|---|
+| `AGENTS.md` | Architecture, invariants, agent instructions |
+| `contracts/schema/` | Canonical CloudEvent and archive schemas |
+| `timoni/bundles/` | Platform composition (Timoni bundles) |
+| `timoni/runtime/` | Runtime contracts (Platform State) |
+| `timoni/values/` | Per-component Helm values |
+| `engine/` | Collector test fixtures, Bloblang presets, rpk tests |
+| `certification/` | Certification catalog and evidence model |
+| `scripts/certification/` | Certification harness scripts |
+| `.github/workflows/` | CI workflows |
+
+### What NOT to do
+
+- Do not add custom services, controllers, or SDKs.
+- Do not embed infrastructure manifests in Python scripts.
+- Do not hardcode credentials in Platform State.
+- Do not use `@latest` or unpinned versions.
+- Do not bypass the collector boundary (always POST to `:4195/events`).
+- Do not commit secrets, tokens, or keys.
+
+---
+
 ## Current Maturity
 
 Welkin is **Alpha**.

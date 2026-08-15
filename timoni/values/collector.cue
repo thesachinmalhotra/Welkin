@@ -93,6 +93,11 @@ collectorValues: {
         address:         "0.0.0.0:4195"
         debug_endpoints: false
       }
+      input: {
+        http_server: {
+          path: "/events"
+        }
+      }
       metrics: {
         prometheus: {
           add_process_metrics: true
