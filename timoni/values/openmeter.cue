@@ -22,7 +22,11 @@ openmeterValues: {
     svix: {
       enabled: false
     }
-    config: meters: [
+    config: {
+      postgres: {
+        url: "postgres://application:application@openmeter-postgres:5432/application?sslmode=disable"
+      }
+      meters: [
       {
         slug:          "kubernetes-pod-exec-time"
         description:   "Kubernetes pod exec time"
@@ -35,5 +39,6 @@ openmeterValues: {
         }
       },
     ]
+    }
   }
 }
