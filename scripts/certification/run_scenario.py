@@ -167,6 +167,90 @@ spec:
 """
 
 
+POSTGRES_MANIFEST = """apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: welkin-system
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: welkin-system
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              value: "application"
+            - name: POSTGRES_PASSWORD
+              value: "application"
+            - name: POSTGRES_DB
+              value: "application"
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "application", "-d", "application"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: welkin-system
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+"""
+
+
+def setup_postgres(artifact_dir: Path) -> None:
+    run_command(
+        ["kubectl", "apply", "-f", "-"],
+        artifact_dir,
+        "postgres-manifest.log",
+        stdin_text=POSTGRES_MANIFEST,
+    )
+    run_command(
+        [
+            "kubectl",
+            "wait",
+            "--for=condition=available",
+            "deployment/postgres",
+            "-n",
+            "welkin-system",
+            "--timeout=120s",
+        ],
+        artifact_dir,
+        "postgres-wait.log",
+    )
+
+
 def setup_minio(artifact_dir: Path) -> None:
     run_command(
         ["kubectl", "apply", "-f", "-"],
@@ -555,6 +639,7 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
 
         setup_minio(artifact_dir)
         create_minio_bucket(artifact_dir)
+        setup_postgres(artifact_dir)
 
         run_command(
             [

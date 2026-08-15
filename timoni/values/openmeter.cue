@@ -12,19 +12,14 @@ openmeterValues: {
   }
   helmValues: {
     postgresql: {
-      auth: {
-        postgresPassword: "postgres"
-        username: "application"
-        password: "application"
-        sslMode: "disable"
-      }
+      enabled: false
     }
     svix: {
       enabled: false
     }
     config: {
       postgres: {
-        url: "postgres://application:application@openmeter-postgres:5432/application?sslmode=disable"
+        url: "postgres://application:application@postgres:5432/application?sslmode=disable"
       }
       meters: [
       {
