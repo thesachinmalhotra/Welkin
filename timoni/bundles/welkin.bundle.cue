@@ -21,6 +21,24 @@ bundle: {
       }
     }
 
+    postgres: {
+      module: {
+        url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
+        version: runtime.charts.fluxModuleVersion
+      }
+      namespace: "flux-system"
+      values: postgresValues
+    }
+
+    minio: {
+      module: {
+        url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
+        version: runtime.charts.fluxModuleVersion
+      }
+      namespace: "flux-system"
+      values: minioValues
+    }
+
     openmeter: {
       module: {
         url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"

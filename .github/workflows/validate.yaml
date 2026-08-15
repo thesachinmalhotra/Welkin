@@ -6,7 +6,7 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -16,23 +16,44 @@ jobs:
         with:
           go-version: '1.24'
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install CUE
-        run: go install cuelang.org/go/cmd/cue@latest
+        run: go install cuelang.org/go/cmd/cue@v0.4.0
 
       - name: Install Timoni
-        run: go install github.com/stefanprodan/timoni/cmd/timoni@latest
+        run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
 
-      - name: Install rpk
+      - name: Install rpk (test-only tooling)
+        # rpk is used only as a local/CI test harness for Benthos/Redpanda Connect mappings
+        # It is NOT the OpenMeter Collector runtime. Do not use rpk as a production collector.
         run: |
-          curl -LO https://github.com/redpanda-data/redpanda/releases/latest/download/rpk-linux-amd64.zip
+          curl -LO https://github.com/redpanda-data/redpanda/releases/download/v26.2.1/rpk-linux-amd64.zip
           unzip -o rpk-linux-amd64.zip -d /tmp/rpk
           sudo install /tmp/rpk/rpk /usr/local/bin/rpk
 
+      - name: Export certification catalog
+        run: ~/go/bin/cue export certification/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
+
+      - name: Validate certification catalog
+        run: python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
+
+      - name: Compile certification scripts
+        run: python3 -m py_compile scripts/certification/validate_catalog.py scripts/certification/render_evidence.py scripts/certification/run_scenario.py
       - name: Validate canonical contract
-        run: ~/go/bin/cue vet ./collector/fixtures/canonical-event.json ./cue/schema/cloudevent.cue
+        run: ~/go/bin/cue vet -d '#CloudEvent' ./engine/fixtures/canonical-event.json ./contracts/schema/cloudevent.cue
 
       - name: Run collector tests
-        run: rpk connect test ./collector/tests/...
+        run: rpk connect test ./engine/tests/*.yaml
 
       - name: Vet Timoni bundle
-        run: ~/go/bin/timoni bundle vet -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue
+        run: ~/go/bin/timoni bundle vet -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue -f timoni/values/collector.cue -f timoni/values/openmeter.cue -f timoni/values/postgres.cue -f timoni/values/minio.cue --runtime-from-env
+        env:
+          OPENMETER_TOKEN: ${{ secrets.OPENMETER_TOKEN }}
+          ARCHIVE_S3_ENDPOINT: "http://minio:9000"
+          ARCHIVE_S3_BUCKET: "welkin-archive"
+          ARCHIVE_S3_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          ARCHIVE_S3_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

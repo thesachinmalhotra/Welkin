@@ -7,7 +7,7 @@ on:
 
 jobs:
   catalog:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -25,7 +25,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install CUE
-        run: go install cuelang.org/go/cmd/cue@latest
+        run: go install cuelang.org/go/cmd/cue@v0.4.0
 
       - name: Export certification catalog
         run: ~/go/bin/cue export certification/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json

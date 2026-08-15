@@ -1,0 +1,21 @@
+# CODEOWNERS — auto-assign reviewers by file path
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Architecture docs — require review before merge
+AGENTS.md                     @thesachinmalhotra
+docs/architecture.md          @thesachinmalhotra
+contracts/                    @thesachinmalhotra
+
+# Platform distribution — Timoni + Flux
+timoni/                       @thesachinmalhotra
+flux/                         @thesachinmalhotra
+
+# Collector config — production pipeline
+engine/                       @thesachinmalhotra
+
+# Certification — evidence and scenarios
+certification/                @thesachinmalhotra
+scripts/certification/        @thesachinmalhotra
+
+# CI workflows — gatekeeper
+.github/workflows/            @thesachinmalhotra

@@ -1,0 +1,72 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE: ${{ github.repository_owner }}/welkin
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Timoni
+        run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | timoni registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+      - name: Build artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          timoni artifact build \
+            -f release \
+            -t "${VERSION}" \
+            -o welkin-${VERSION}.oci.tar
+
+      - name: Push artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          DIGEST=$(timoni artifact push oci://${{ env.REGISTRY }}/${{ env.IMAGE }} \
+            -f welkin-${VERSION}.oci.tar \
+            --resolve-symlinks \
+            --tag="${VERSION}" \
+            --tag=latest \
+            --annotation="org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            --annotation="org.opencontainers.image.revision=${{ github.sha }}" \
+            --annotation="org.opencontainers.image.version=${VERSION}" \
+            2>&1 | grep "digest:" | awk '{print $2}')
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "### Release Artifact" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Digest: \`${DIGEST}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Registry: \`${{ env.REGISTRY }}/${{ env.IMAGE }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify artifact
+        run: |
+          VERSION="${GITHUB_REF_NAME}"
+          timoni artifact pull oci://${{ env.REGISTRY }}/${{ env.IMAGE }}:${VERSION} \
+            --output /tmp/verify
+          echo "Pulled artifact contents:"
+          ls -la /tmp/verify/
+          timoni bundle vet -f /tmp/verify/welkin.bundle.cue \
+            -f /tmp/verify/welkin.runtime.cue \
+            -f /tmp/verify/collector.cue \
+            -f /tmp/verify/openmeter.cue \
+            -f /tmp/verify/postgres.cue \
+            -f /tmp/verify/minio.cue \
+            --runtime-from-env
