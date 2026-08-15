@@ -19,6 +19,8 @@ openmeterValues: {
     }
     config: {
       postgres: {
+        // References the composed Postgres instance (timoni/values/postgres.cue)
+        // Service name is set via helmValues.fullnameOverride: "postgres"
         url: "postgres://application:application@postgres:5432/application?sslmode=disable"
       }
       meters: [

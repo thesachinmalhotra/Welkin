@@ -47,7 +47,7 @@ Welkin is **not production-ready** per the contract. Of the 8 V1 Required Guaran
 - Does NOT enforce `specversion: "1.0"` (just `type: "string"`)
 - Uses JSON Schema draft-07
 
-**`engine/schemas/cloudevent.schema.json`** (used by collector runtime at `engine/config/base.yaml:52`):
+**`timoni/values/collector.cue` inline JSON Schema** (the collector runtime validation source):
 ```json
 "required": ["id", "specversion", "type", "source", "time", "subject", "data"]
 ```
@@ -127,7 +127,7 @@ The test expects `output_batches: - []` (one batch containing zero messages), bu
 
 **Impact:** Two test cases fail, reducing confidence in the collector pipeline's correctness. The CI workaround for test 1 adds complexity. Test 2 has a wrong expectation.
 
-**Required outcome:** Either fix the test expectations or ensure the test harness handles `deleted()` semantics correctly. For test 1, consider whether the archive partition test should reference the inlined config from `timoni/values/collector.cue` instead of `engine/config/base.yaml`.
+**Required outcome:** Either fix the test expectations or ensure the test harness handles `deleted()` semantics correctly. For test 1, the archive partition test now references the inlined config from `timoni/values/collector.cue` (the sole deployment source).
 
 ---
 
@@ -203,10 +203,11 @@ But `deleted()` in Bloblang produces zero output batches, not one empty batch. T
 | **Severity** | **P3 — Future improvement** |
 | **Affected guarantee** | None (maintenance) |
 | **Evidence** | `engine/resources/pipelines/` exists but contains zero files. |
+| **Status** | **Resolved (Phase 1)** — Directory deleted along with other dead files. |
 
 **Impact:** No runtime impact. Creates confusion about intended directory structure.
 
-**Required outcome:** Remove the empty directory or populate it with intended content.
+**Required outcome:** ~~Remove the empty directory or populate it with intended content.~~ **Done — directory deleted.**
 
 ---
 

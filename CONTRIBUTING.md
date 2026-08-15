@@ -91,7 +91,7 @@ Before pushing, run the checks that apply to your changes:
 - Do not hardcode credentials in Platform State (`.cue` files)
 - Do not use `@latest` or unpinned versions
 - Do not bypass the collector boundary (always POST to `:4195/events`)
-- Do not treat `engine/config/base.yaml` as a deployment source (it's a dev reference)
+- `engine/config/base.yaml` was deleted in Phase 1 — collector config lives only in `timoni/values/collector.cue`
 - Do not commit secrets, tokens, or keys
 
 ## AI agents

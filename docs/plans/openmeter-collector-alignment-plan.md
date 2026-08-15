@@ -1,3 +1,5 @@
+> **SUPERSEDED** — This plan's goal (make `engine/config/base.yaml` the canonical collector source) has been superseded by the Composition Restoration program (Phase 1). The file `engine/config/base.yaml` has been deleted. Collector config now lives only in `timoni/values/collector.cue`.
+
 # Welkin OpenMeter Collector Alignment Plan
 
 ## Intent

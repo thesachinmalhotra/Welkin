@@ -64,36 +64,36 @@ These exist in the current implementation but are NOT upstream-native — they a
 | `POSTGRES_MANIFEST` inline YAML in `run_scenario.py` | Compose Postgres as a separate Timoni instance using the upstream PostgreSQL chart (`bitnami/postgresql` or `pg` module) |
 | Direct `POST` to `openmeter-api:80/api/v1/events` in test harness | POST to `openmeter-collector:4195/events` via the collector's `http_server` input |
 | `assert_parquet_in_minio()` stub | `mc find local/welkin-archive --name "*.parquet"` in the native TestJob |
-| `engine/config/base.yaml` as a source-of-truth separate from Timoni | The Timoni module's `helmValues.config` IS the source of truth; `engine/config/base.yaml` becomes a local dev reference only |
+| `engine/config/base.yaml` as a source-of-truth separate from Timoni | Deleted. Collector config lives only in `timoni/values/collector.cue` |
 
 ## Phase Map
 
 ### Phase 1 — Environment Foundation
-- Spin up a fresh `k8s-runtime.cue` with real environment values (no hardcoded test overlays)
+- ~~Spin up a fresh `k8s-runtime.cue` with real environment values (no hardcoded test overlays)~~ **Done (welkin.runtime.cue is now concrete defaults)**
 - Ensure all secrets (`OPENMETER_TOKEN`, `ARCHIVE_S3_*`) are in a K8s Secret that Timoni can query via `k8s:v1:Secret`
-- Remove the `ci-test.cue` overlay — it's a test abstraction that leaks into production shapes
+- ~~Remove the `ci-test.cue` overlay — it's a test abstraction that leaks into production shapes~~ **Done (deleted in Phase 2)**
 
 ### Phase 2 — Postgres as a Lego
-- Remove `POSTGRES_MANIFEST` from `run_scenario.py`
-- Add a `postgres` Timoni instance to the bundle using `bitnami/postgresql` Helm chart OR the stefanprodan `pg` module
-- Wire `openmeter.config.postgres.url` to the composed Postgres service (`postgres:5432`)
-- Remove the hardcoded `postgres://application:application@postgres:5432` string from `openmeter.cue`
+- ~~Remove `POSTGRES_MANIFEST` from `run_scenario.py`~~ **Done**
+- ~~Add a `postgres` Timoni instance to the bundle using `bitnami/postgresql` Helm chart OR the stefanprodan `pg` module~~ **Done (bitnami/postgresql via flux-helm-release)**
+- ~~Wire `openmeter.config.postgres.url` to the composed Postgres service (`postgres:5432`)~~ **Done (service name matches via fullnameOverride)**
+- ~~Remove the hardcoded `postgres://application:application@postgres:5432` string from `openmeter.cue`~~ **Wired to composed Postgres; credentials remain as env values (Secret injection deferred to production hardening)**
 
 ### Phase 3 — Collector as Pure Lego
 - The collector instance in the Timoni bundle IS the complete collector config surface
-- Remove `engine/config/base.yaml` as a "source of truth" — it becomes a developer reference only
+- ~~Remove `engine/config/base.yaml` as a "source of truth"~~ **Done (deleted in Phase 1)**
 - The `input.http_server.path: /events` is set in the Timoni module's `helmValues.config` block
 - All environment knobs (`OPENMETER_URL`, `ARCHIVE_S3_*`, `LOG_LEVEL`, etc.) flow from Timoni runtime → Helm env vars → Benthos config
 - No file mounts, no ConfigMap patches, no custom init containers
 
 ### Phase 4 — Certification as a Lego
-- Replace `run_scenario.py` with a Flux `Kustomization` that deploys a `Job` resource
-- The Job tests the composed system natively:
-  - POSTs a CloudEvent to `http://openmeter-collector:4195/events`
-  - Queries OpenMeter API (`http://openmeter-api/api/v1/meters/*/values`)
-  - Queries MinIO (`mc find`) for Parquet files
-- Certification result is a K8s Job pod log — not a CI script artifact
-- The certification Kustomization is part of the bundle, not an external script
+- ~~Replace `run_scenario.py` with a Flux `Kustomization` that deploys a `Job` resource~~ **Done (Job created, run_scenario.py simplified)**
+- ~~The Job tests the composed system natively:~~ **Done (certify.sh)**
+  - ~~POSTs a CloudEvent to `http://openmeter-collector:4195/events`~~
+  - ~~Queries OpenMeter API (`http://openmeter-api/api/v1/meters/*/values`)~~
+  - ~~Queries MinIO for Parquet files (via S3 API)~~
+- ~~Certification result is a K8s Job pod log — not a CI script artifact~~ **Done**
+- The certification Kustomization is part of the bundle, not an external script *(deferred to Phase 5 — Flux integration)*
 
 ### Phase 5 — Platform Artifact
 - `timoni bundle build` produces all Kubernetes resources as a directory tree
@@ -117,7 +117,7 @@ These exist in the current implementation but are NOT upstream-native — they a
 - No custom services
 - No Redpanda Connect config files checked into the repo (that is the Helm chart's job)
 - No bash scripts for infrastructure orchestration
-- No `engine/config/base.yaml` as a deployment materialization source
+- No `engine/config/base.yaml` as a deployment materialization source (deleted in Phase 1)
 - No stub assertions — if something can't be verified composably, surface the gap instead of stubbing it
 
 ## When Ready

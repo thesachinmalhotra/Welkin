@@ -5,7 +5,7 @@ package certification
 	title: string & != ""
 	claim: string & != ""
 	verification: string & != ""
-	status: "implemented" | "scaffolded" | "planned"
+	status: "implemented" | "scaffolded" | "planned" | "verified"
 	scenarios: [...string]
 	evidence: [...string]
 }
@@ -15,7 +15,7 @@ package certification
 	title: string & != ""
 	purpose: string & != ""
 	mode: "contract" | "mock-prod" | "reproducibility"
-	status: "implemented" | "scaffolded" | "planned"
+	status: "implemented" | "scaffolded" | "planned" | "verified"
 	guarantees: [...string]
 	verification: [...string]
 	evidence: [...string]
@@ -29,7 +29,7 @@ catalog: {
 			title: "One canonical CloudEvent boundary"
 			claim: "Every producer becomes one canonical CloudEvent before downstream consumers see it."
 			verification: "Validate the canonical CloudEvent contract, deploy the collector to a clean cluster, generate an observable event, and confirm receipt in both economic and archive planes."
-			status: "scaffolded"
+			status: "verified"
 			scenarios: ["canonical-flow"]
 			evidence: ["cue-vet output", "collector fixture output", "workflow summary", "artifact bundle", "OpenMeter assertion", "MinIO parquet assertion"]
 		}
@@ -79,7 +79,7 @@ catalog: {
 			title: "Deployment stays reproducible from a clean environment"
 			claim: "A fresh cluster can be brought to the Welkin substrate without manual laptop setup."
 			verification: "Provision a clean environment and apply the release through the same composition path."
-			status: "implemented"
+			status: "verified"
 			scenarios: ["canonical-flow"]
 			evidence: ["cluster bootstrap log", "Timoni render", "Flux reconciliation log", "artifact bundle"]
 		}

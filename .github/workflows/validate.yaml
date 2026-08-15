@@ -46,40 +46,11 @@ jobs:
       - name: Validate canonical contract
         run: ~/go/bin/cue vet -d '#CloudEvent' ./engine/fixtures/canonical-event.json ./contracts/schema/cloudevent.cue
 
-      - name: Prepare rpk-friendly collector config (test-only)
-        run: |
-          set -euo pipefail
-          echo 'Backing up original engine/config/base.yaml'
-          cp engine/config/base.yaml engine/config/base.yaml.bak || true
-          python3 - <<'PY'
-import yaml
-p='engine/config/base.yaml'
-with open(p) as f:
-    doc=yaml.safe_load(f)
-# Replace openmeter output resource with a file output for rpk tests
-outs=doc.get('output_resources', [])
-for i,item in enumerate(outs):
-    if item.get('label')=='welkin_economic_openmeter':
-        outs[i]={'label':'welkin_economic_openmeter','file':{'path':'/tmp/openmeter-test-output.json'}}
-doc['output_resources']=outs
-with open(p,'w') as f:
-    yaml.safe_dump(doc,f)
-print('Wrote test-friendly engine/config/base.yaml')
-PY
-
       - name: Run collector tests
         run: rpk connect test ./engine/tests/*.yaml
 
-      - name: Restore original collector config
-        if: always()
-        run: |
-          set -euo pipefail
-          if [ -f engine/config/base.yaml.bak ]; then
-            mv engine/config/base.yaml.bak engine/config/base.yaml
-          fi
-
       - name: Vet Timoni bundle
-        run: ~/go/bin/timoni bundle vet -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue -f timoni/runtime/ci-test.cue -f timoni/values/collector.cue -f timoni/values/openmeter.cue --runtime-from-env
+        run: ~/go/bin/timoni bundle vet -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue -f timoni/values/collector.cue -f timoni/values/openmeter.cue -f timoni/values/postgres.cue -f timoni/values/minio.cue --runtime-from-env
         env:
           OPENMETER_TOKEN: ${{ secrets.OPENMETER_TOKEN }}
           ARCHIVE_S3_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

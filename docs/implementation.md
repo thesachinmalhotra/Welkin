@@ -14,12 +14,11 @@ The first implemented path is source-agnostic at the Canonical CloudEvent bounda
 
 Key pieces:
 
-- `engine/config/base.yaml`
 - `engine/resources/processors/validate_cloudevent.yaml`
 - `engine/resources/processors/archive_partition.blobl`
-- `engine/resources/outputs/economic_openmeter.yaml`
-- `engine/resources/outputs/archive_s3.yaml`
 - `engine/tests/archive_partition_test.yaml`
+
+Collector config is inlined in `timoni/values/collector.cue` (the sole deployment source).
 
 The Canonical CloudEvent contract is validated with CUE against fixtures in `engine/fixtures/` and `contracts/`.
 

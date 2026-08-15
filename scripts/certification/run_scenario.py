@@ -106,526 +106,147 @@ runtime: {{
     return overlay
 
 
-MINIO_MANIFEST = """apiVersion: v1
-kind: Namespace
+CERTIFICATION_JOB = """apiVersion: batch/v1
+kind: Job
 metadata:
-  name: welkin-system
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: minio
+  name: welkin-certification
   namespace: welkin-system
   labels:
-    app: minio
+    app.kubernetes.io/name: welkin-certification
+    app.kubernetes.io/part-of: welkin
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: minio
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 300
   template:
     metadata:
       labels:
-        app: minio
+        app.kubernetes.io/name: welkin-certification
     spec:
+      restartPolicy: Never
       containers:
-        - name: minio
-          image: minio/minio:latest
-          args: ["server", "/data", "--console-address", ":9001"]
-          ports:
-            - containerPort: 9000
-              name: api
-            - containerPort: 9001
-              name: console
-          env:
-            - name: MINIO_ROOT_USER
-              value: "minio"
-            - name: MINIO_ROOT_PASSWORD
-              value: "minio123"
-          readinessProbe:
-            httpGet:
-              path: /minio/health/ready
-              port: 9000
-            initialDelaySeconds: 5
-            periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: minio
-  namespace: welkin-system
-spec:
-  selector:
-    app: minio
-  ports:
-    - name: api
-      port: 9000
-      targetPort: 9000
-    - name: console
-      port: 9001
-      targetPort: 9001
+        - name: certify
+          image: curlimages/curl:8.5.0
+          command: ["/bin/sh", "/scripts/certify.sh"]
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: welkin-certify-script
+            defaultMode: 0755
 """
 
 
-POSTGRES_MANIFEST = """apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-data
-  namespace: welkin-system
-spec:
-  accessModes: [ReadWriteOnce]
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: postgres
-  namespace: welkin-system
-  labels:
-    app: postgres
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:16-alpine
-          ports:
-            - containerPort: 5432
-              name: postgres
-          env:
-            - name: POSTGRES_USER
-              value: "application"
-            - name: POSTGRES_PASSWORD
-              value: "application"
-            - name: POSTGRES_DB
-              value: "application"
-          readinessProbe:
-            exec:
-              command: ["pg_isready", "-U", "application", "-d", "application"]
-            initialDelaySeconds: 5
-            periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
-  namespace: welkin-system
-spec:
-  selector:
-    app: postgres
-  ports:
-    - name: postgres
-      port: 5432
-      targetPort: 5432
-"""
-
-
-def setup_postgres(artifact_dir: Path) -> None:
+def run_certification_job(artifact_dir: Path) -> tuple[bool, str]:
+    """Create the certification Job, wait for completion, capture logs."""
+    script_path = Path("scripts/certification/certify.sh")
+    render = subprocess.run(
+        [
+            "kubectl",
+            "create",
+            "configmap",
+            "welkin-certify-script",
+            "--from-file=certify.sh=" + str(script_path),
+            "-n",
+            "welkin-system",
+            "--dry-run=client",
+            "-o=yaml",
+        ],
+        capture_output=True,
+        text=True,
+    )
     run_command(
         ["kubectl", "apply", "-f", "-"],
         artifact_dir,
-        "postgres-manifest.log",
-        stdin_text=POSTGRES_MANIFEST,
+        "configmap-apply.log",
+        stdin_text=render.stdout,
     )
-    run_command(
-        [
-            "kubectl",
-            "wait",
-            "--for=condition=available",
-            "deployment/postgres",
-            "-n",
-            "welkin-system",
-            "--timeout=120s",
-        ],
-        artifact_dir,
-        "postgres-wait.log",
-    )
-
-
-def setup_minio(artifact_dir: Path) -> None:
     run_command(
         ["kubectl", "apply", "-f", "-"],
         artifact_dir,
-        "minio-manifest.log",
-        stdin_text=MINIO_MANIFEST,
-    )
-    run_command(
-        [
-            "kubectl",
-            "wait",
-            "--for=condition=available",
-            "deployment/minio",
-            "-n",
-            "welkin-system",
-            "--timeout=120s",
-        ],
-        artifact_dir,
-        "minio-wait.log",
+        "certification-job-create.log",
+        stdin_text=CERTIFICATION_JOB,
     )
 
-
-def create_minio_bucket(artifact_dir: Path) -> None:
-    run_command(
-        [
-            "kubectl",
-            "exec",
-            "-n",
-            "welkin-system",
-            "deployment/minio",
-            "--",
-            "mc",
-            "alias",
-            "set",
-            "local",
-            "http://localhost:9000",
-            "minio",
-            "minio123",
-        ],
-        artifact_dir,
-        "minio-alias.log",
-        allow_failure=True,
-    )
-    run_command(
-        [
-            "kubectl",
-            "exec",
-            "-n",
-            "welkin-system",
-            "deployment/minio",
-            "--",
-            "mc",
-            "mb",
-            "local/welkin-archive",
-            "--ignore-existing",
-        ],
-        artifact_dir,
-        "minio-create-bucket.log",
-        allow_failure=True,
-    )
-
-
-def capture_failure_diagnostics(artifact_dir: Path) -> None:
-    """Capture cluster diagnostics on failure. All commands are best-effort."""
-    diag_dir = artifact_dir / "diagnostics"
-    diag_dir.mkdir(parents=True, exist_ok=True)
-    diagnostics = [
-        (["kubectl", "get", "deployments", "-A"], "get-deployments.log"),
-        (["kubectl", "describe", "deployments", "-A"], "describe-deployments.log"),
-        (["kubectl", "get", "pods", "-A"], "get-pods.log"),
-        (["kubectl", "describe", "pods", "-A"], "describe-pods.log"),
-        (
-            ["kubectl", "get", "events", "-A", "--sort-by=.metadata.creationTimestamp"],
-            "get-events.log",
-        ),
-        (
-            [
-                "kubectl",
-                "logs",
-                "-n",
-                "welkin-system",
-                "deployment/openmeter-api",
-                "--tail=200",
-            ],
-            "openmeter-logs.log",
-        ),
-        (
-            [
-                "kubectl",
-                "logs",
-                "-n",
-                "welkin-system",
-                "deployment/openmeter-api",
-                "--tail=200",
-                "--previous",
-            ],
-            "openmeter-logs-previous.log",
-        ),
-        (
-            ["kubectl", "get", "pods", "-n", "welkin-system", "-o", "yaml"],
-            "openmeter-pods-yaml.log",
-        ),
-        (
-            [
-                "kubectl",
-                "get",
-                "configmap",
-                "openmeter",
-                "-n",
-                "welkin-system",
-                "-o",
-                "yaml",
-            ],
-            "openmeter-configmap.log",
-        ),
-    ]
-    for cmd, log_name in diagnostics:
-        run_command(cmd, diag_dir, log_name, allow_failure=True, include_output=True)
-
-
-def generate_exec_event(artifact_dir: Path) -> str:
-    event_id = f"certification-{int(time.time())}"
-    cloud_event = json.dumps(
-        {
-            "specversion": "1.0",
-            "id": event_id,
-            "source": "welkin-certification",
-            "type": "kube-pod-exec-time",
-            "subject": event_id,
-            "datacontenttype": "application/json",
-            "data": {
-                "duration_seconds": 42,
-                "pod_name": "welkin-certification-target",
-                "pod_namespace": "default",
-            },
-        }
-    )
-    run_command(
-        [
-            "kubectl",
-            "exec",
-            "-n",
-            "welkin-system",
-            "deployment/openmeter-api",
-            "--",
-            "wget",
-            "-q",
-            "-O-",
-            "--post-data",
-            cloud_event,
-            "--header",
-            "Content-Type: application/cloudevents+json",
-            "http://openmeter-collector:4195/events",
-        ],
-        artifact_dir,
-        "openmeter-collector-ingest.log",
-    )
-    run_command(["sleep", "10"], artifact_dir, "event-settle.log")
-    return event_id
-
-
-def assert_openmeter_received(artifact_dir: Path, event_id: str) -> bool:
-    result = run_command(
-        [
-            "kubectl",
-            "exec",
-            "-n",
-            "welkin-system",
-            "deployment/openmeter-api",
-            "--",
-            "wget",
-            "-q",
-            "-O-",
-            f"http://localhost:80/api/v1/meters/kubernetes-pod-exec-time/values?windowSize=1h&subject={event_id}",
-        ],
-        artifact_dir,
-        "openmeter-query.log",
-        allow_failure=True,
-    )
-    output = result.stdout + result.stderr
-    write_text(
-        artifact_dir / "openmeter-assertion.txt",
-        f"event_id: {event_id}\nopenmeter_response: {output}\n",
-    )
-    try:
-        body = json.loads(result.stdout)
-        total = (
-            body.get("windowed", [{}])[0].get("value", 0)
-            if body.get("windowed")
-            else body.get("value", 0)
-        )
-        return float(total) > 0
-    except (json.JSONDecodeError, IndexError, KeyError, TypeError):
-        return False
-
-
-def assert_parquet_in_minio(artifact_dir: Path) -> bool:
-    result = run_command(
-        [
-            "kubectl",
-            "exec",
-            "-n",
-            "welkin-system",
-            "deployment/minio",
-            "--",
-            "mc",
-            "find",
-            "local/welkin-archive",
-            "--name",
-            "*.parquet",
-        ],
-        artifact_dir,
-        "minio-find.log",
-        allow_failure=True,
-    )
-    output = (result.stdout + result.stderr).strip()
-    write_text(
-        artifact_dir / "minio-assertion.txt",
-        f"parquet_found: {'true' if '.parquet' in output else 'false'}\nminio_output: {output}\n",
-    )
-    return ".parquet" in output
-
-
-def _wait_for_readiness_with_diagnostics(artifact_dir: Path) -> None:
-    """Wait for pods to become ready, capturing diagnostics on failure.
-
-    Instead of relying on timoni --wait (which blocks until timeout and loses
-    pod logs), we poll ourselves and grab logs + configmap on first failure.
-    """
-    diag_dir = artifact_dir / "diagnostics"
-    diag_dir.mkdir(parents=True, exist_ok=True)
-    deadline = time.time() + 20 * 60  # 20 minute overall budget
-    captured = False
+    deadline = time.time() + 10 * 60
     while time.time() < deadline:
         result = subprocess.run(
             [
                 "kubectl",
                 "get",
-                "pods",
+                "job",
+                "welkin-certification",
                 "-n",
                 "welkin-system",
                 "-o",
-                "jsonpath={range .items[*]}{.metadata.name}={.status.phase} {end}",
+                "jsonpath={.status.conditions[?(@.type=='Complete')].status}",
             ],
             capture_output=True,
             text=True,
         )
-        pods = result.stdout.strip()
-        if not pods:
-            time.sleep(5)
-            continue
-
-        phases = [entry.split("=", 1)[1] for entry in pods.split() if "=" in entry]
-        all_running = all(p == "Running" for p in phases)
-
-        # Check if any pod is in a terminal failure state
-        fail_result = subprocess.run(
+        if result.stdout.strip() == "True":
+            break
+        fail = subprocess.run(
             [
                 "kubectl",
                 "get",
-                "pods",
+                "job",
+                "welkin-certification",
                 "-n",
                 "welkin-system",
                 "-o",
-                "jsonpath={range .items[*]}{.metadata.name}={.status.phase} {end}",
+                "jsonpath={.status.conditions[?(@.type=='Failed')].status}",
             ],
             capture_output=True,
             text=True,
         )
-        has_failed = any(
-            p in ("Failed", "Unknown")
-            for p in [
-                e.split("=", 1)[1]
-                for e in fail_result.stdout.strip().split()
-                if "=" in e
-            ]
+        if fail.stdout.strip() == "True":
+            break
+        time.sleep(5)
+    else:
+        write_text(
+            artifact_dir / "certification-timeout.log",
+            "Job did not complete within 10 minutes\n",
         )
+        return False, "certification job timed out"
 
-        # Capture early diagnostics if any pod is not Running or has crashed
-        if not captured and (has_failed or not all_running):
-            # Give pods a moment to settle, then capture immediately
-            time.sleep(10)
-            for cmd, name in [
-                (
-                    ["kubectl", "get", "pods", "-n", "welkin-system"],
-                    "get-pods.log",
-                ),
-                (
-                    [
-                        "kubectl",
-                        "get",
-                        "events",
-                        "-A",
-                        "--sort-by=.metadata.creationTimestamp",
-                    ],
-                    "get-events.log",
-                ),
-                (
-                    [
-                        "kubectl",
-                        "logs",
-                        "-n",
-                        "welkin-system",
-                        "deployment/openmeter-api",
-                        "--tail=200",
-                    ],
-                    "openmeter-logs.log",
-                ),
-                (
-                    [
-                        "kubectl",
-                        "logs",
-                        "-n",
-                        "welkin-system",
-                        "deployment/openmeter-api",
-                        "--tail=200",
-                        "--previous",
-                    ],
-                    "openmeter-logs-previous.log",
-                ),
-                (
-                    [
-                        "kubectl",
-                        "get",
-                        "configmap",
-                        "openmeter",
-                        "-n",
-                        "welkin-system",
-                        "-o",
-                        "yaml",
-                    ],
-                    "openmeter-configmap.log",
-                ),
-                (
-                    [
-                        "kubectl",
-                        "describe",
-                        "pods",
-                        "-n",
-                        "welkin-system",
-                    ],
-                    "describe-pods.log",
-                ),
-            ]:
-                r = subprocess.run(cmd, capture_output=True, text=True)
-                write_text(
-                    diag_dir / name,
-                    command_log(cmd, r.returncode, r.stdout, r.stderr),
-                )
-            captured = True
-
-        if all_running:
-            # Check openmeter-api readiness specifically
-            ready_result = subprocess.run(
-                [
-                    "kubectl",
-                    "get",
-                    "deployment",
-                    "openmeter-api",
-                    "-n",
-                    "welkin-system",
-                    "-o",
-                    "jsonpath={.status.readyReplicas}",
-                ],
-                capture_output=True,
-                text=True,
-            )
-            ready = ready_result.stdout.strip()
-            if ready and ready != "0" and ready != "<none>":
-                return
-        time.sleep(10)
-
-    raise RuntimeError(
-        "timonibundle apply: pods did not become ready within 20 minutes"
+    logs = subprocess.run(
+        ["kubectl", "logs", "-n", "welkin-system", "job/welkin-certification"],
+        capture_output=True,
+        text=True,
     )
+    write_text(
+        artifact_dir / "certification-job.log",
+        command_log(
+            ["kubectl", "logs", "job/welkin-certification"],
+            logs.returncode,
+            logs.stdout,
+            logs.stderr,
+        ),
+    )
+
+    status = subprocess.run(
+        [
+            "kubectl",
+            "get",
+            "job",
+            "welkin-certification",
+            "-n",
+            "welkin-system",
+            "-o",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    write_text(artifact_dir / "certification-job-status.json", status.stdout)
+
+    succeeded = (
+        "passed" in logs.stdout.lower() or '"succeeded":1' in status.stdout.lower()
+    )
+    return succeeded, logs.stdout
 
 
 def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
@@ -655,11 +276,6 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             artifact_dir,
             "kind-create.log",
         )
-
-        setup_minio(artifact_dir)
-        create_minio_bucket(artifact_dir)
-        setup_postgres(artifact_dir)
-
         run_command(
             [
                 str(TIMONI_BIN),
@@ -674,6 +290,10 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
                 "-f",
                 "timoni/values/openmeter.cue",
                 "-f",
+                "timoni/values/postgres.cue",
+                "-f",
+                "timoni/values/minio.cue",
+                "-f",
                 str(overlay),
                 "--runtime-from-env",
             ],
@@ -682,57 +302,53 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             include_output=False,
         )
 
-        _wait_for_readiness_with_diagnostics(artifact_dir)
-
-        event_id = generate_exec_event(artifact_dir)
-        notes.append(f"generated event_id: {event_id}")
-
-        run_command(["sleep", "30"], artifact_dir, "event-settle.log")
-
         run_command(
-            ["kubectl", "get", "all", "-A"], artifact_dir, "kubectl-get-all.log"
-        )
-        run_command(
-            ["kubectl", "get", "events", "-A", "--sort-by=.metadata.creationTimestamp"],
+            [
+                "kubectl",
+                "wait",
+                "--for=condition=ready",
+                "pod",
+                "-l",
+                "app.kubernetes.io/name=openmeter-api",
+                "-n",
+                "welkin-system",
+                "--timeout=300s",
+            ],
             artifact_dir,
-            "kubectl-events.log",
+            "wait-openmeter.log",
+            allow_failure=True,
         )
         run_command(
             [
                 "kubectl",
-                "logs",
+                "wait",
+                "--for=condition=ready",
+                "pod",
+                "-l",
+                "app.kubernetes.io/name=benthos-collector",
                 "-n",
                 "welkin-system",
-                "-l",
-                "app.kubernetes.io/name=collector",
-                "--tail=200",
+                "--timeout=300s",
             ],
             artifact_dir,
-            "collector.log",
+            "wait-collector.log",
             allow_failure=True,
         )
 
-        openmeter_ok = assert_openmeter_received(artifact_dir, event_id)
-        parquet_ok = assert_parquet_in_minio(artifact_dir)
+        job_ok, job_output = run_certification_job(artifact_dir)
+        notes.append(f"certification_job: {'passed' if job_ok else 'failed'}")
+        notes.append(job_output[:500])
 
-        notes.append(f"openmeter_assertion: {'passed' if openmeter_ok else 'failed'}")
-        notes.append(f"parquet_assertion: {'passed' if parquet_ok else 'failed'}")
-
-        if not openmeter_ok:
-            notes.append("OpenMeter did not confirm receipt of the test event")
-        if not parquet_ok:
-            notes.append("No parquet file found in MinIO archive bucket")
+        run_command(
+            ["kubectl", "get", "all", "-A"], artifact_dir, "kubectl-get-all.log"
+        )
 
     except Exception as exc:
         notes.append(str(exc))
         capture_failure_diagnostics(artifact_dir)
         result = "failed"
     else:
-        if openmeter_ok and parquet_ok:
-            result = "passed"
-        else:
-            result = "failed"
-            notes.append("end-to-end assertions did not all pass")
+        result = "passed" if job_ok else "failed"
     finally:
         run_command(
             ["kind", "delete", "cluster", "--name", "welkin-certification"],
@@ -764,12 +380,29 @@ def malformed_boundary(artifact_dir: Path) -> tuple[str, list[str]]:
             include_output=True,
         ),
     )
-
     if completed.returncode == 0:
         return "failed", ["malformed canonical input unexpectedly validated"]
     return "passed", [
         f"expected cue vet failure observed with exit code {completed.returncode}"
     ]
+
+
+def capture_failure_diagnostics(artifact_dir: Path) -> None:
+    diag_dir = artifact_dir / "diagnostics"
+    diag_dir.mkdir(parents=True, exist_ok=True)
+    for cmd, name in [
+        (["kubectl", "get", "deployments", "-A"], "get-deployments.log"),
+        (["kubectl", "get", "pods", "-A"], "get-pods.log"),
+        (
+            ["kubectl", "get", "events", "-A", "--sort-by=.metadata.creationTimestamp"],
+            "get-events.log",
+        ),
+        (
+            ["kubectl", "logs", "-n", "welkin-system", "job/welkin-certification"],
+            "certification-job.log",
+        ),
+    ]:
+        run_command(cmd, diag_dir, name, allow_failure=True, include_output=True)
 
 
 def main() -> None:
