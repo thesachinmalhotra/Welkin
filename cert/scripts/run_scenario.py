@@ -77,7 +77,7 @@ def run_command(
     return completed
 
 
-def build_overlay() -> Path:
+def build_overlay(archive_endpoint: str | None = None) -> Path:
     overlay = Path("/tmp/welkin.runtime.overlay.cue")
     overlay_content = f'''package main
 
@@ -93,7 +93,7 @@ runtime: {{
     url: "{os.environ.get("OPENMETER_URL", "http://openmeter-api")}"
   }}
   archive: {{
-    endpoint:        "{os.environ.get("ARCHIVE_S3_ENDPOINT", "http://minio.welkin-system.svc.cluster.local:9000")}"
+    endpoint:        "{archive_endpoint or os.environ.get("ARCHIVE_S3_ENDPOINT", "http://minio.welkin-system.svc.cluster.local:9000")}"
     bucket:          "{os.environ.get("ARCHIVE_S3_BUCKET", "welkin-archive")}"
     region:          "{os.environ.get("ARCHIVE_S3_REGION", "us-east-1")}"
     forcePathStyle:  true
@@ -360,6 +360,203 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
     return result, notes
 
 
+def plane_independence(artifact_dir: Path) -> tuple[str, list[str]]:
+    notes: list[str] = []
+    # Inject archive failure: point the archive S3 endpoint at an unreachable
+    # blackhole address so the archive branch backpressures and drops, while
+    # the economic branch must continue to deliver.
+    overlay = build_overlay(
+        archive_endpoint="http://10.255.255.1:9000",
+    )
+
+    try:
+        run_command(
+            [
+                str(CUE_BIN),
+                "vet",
+                "-d",
+                "#CloudEvent",
+                "./collector/fixtures/canonical-event.json",
+                "./spec/schema/cloudevent.cue",
+            ],
+            artifact_dir,
+            "cue-vet.log",
+        )
+        run_command(
+            ["kind", "create", "cluster", "--name", "welkin-certification"],
+            artifact_dir,
+            "kind-create.log",
+        )
+        run_command(
+            [
+                str(TIMONI_BIN),
+                "bundle",
+                "apply",
+                "-f",
+                "platform/bundles/welkin.bundle.cue",
+                "-f",
+                "platform/runtime/welkin.runtime.cue",
+                "-f",
+                "platform/collector/collector.cue",
+                "-f",
+                "platform/economic/openmeter.cue",
+                "-f",
+                "platform/economic/postgres.cue",
+                "-f",
+                "platform/archive/minio.cue",
+                "-f",
+                str(overlay),
+                "--runtime-from-env",
+            ],
+            artifact_dir,
+            "timoni-apply.log",
+            include_output=False,
+        )
+
+        run_command(
+            [
+                "kubectl",
+                "wait",
+                "--for=condition=ready",
+                "pod",
+                "-l",
+                "app.kubernetes.io/name=openmeter-api",
+                "-n",
+                "welkin-system",
+                "--timeout=300s",
+            ],
+            artifact_dir,
+            "wait-openmeter.log",
+            allow_failure=True,
+        )
+        run_command(
+            [
+                "kubectl",
+                "wait",
+                "--for=condition=ready",
+                "pod",
+                "-l",
+                "app.kubernetes.io/name=benthos-collector",
+                "-n",
+                "welkin-system",
+                "--timeout=300s",
+            ],
+            artifact_dir,
+            "wait-collector.log",
+            allow_failure=True,
+        )
+
+        # POST canonical events repeatedly. The economic branch must keep
+        # accepting them; the archive branch should be dropping under
+        # backpressure but must never block the economic branch.
+        run_command(
+            [
+                "kubectl",
+                "exec",
+                "-n",
+                "welkin-system",
+                "deploy/openmeter-collector",
+                "--",
+                "sh",
+                "-c",
+                "for i in $(seq 1 10); do "
+                "curl -s -o /dev/null -w '%{http_code}' -X POST "
+                "http://localhost:4195/events "
+                "-H 'Content-Type: application/cloudevents+json' "
+                '-d \'{"specversion":"1.0","id":"indep-$i",'
+                '"source":"welkin-planing-independence",'
+                '"type":"kube-pod-exec-time",'
+                '"subject":"tenant-indep",'
+                '"data":{"duration_seconds":1,"pod_name":"p",'
+                '"pod_namespace":"default"}}\'; '
+                "echo ' '; sleep 2; done",
+            ],
+            artifact_dir,
+            "post-events.log",
+        )
+
+        # Economic continuity: OpenMeter must still reflect usage.
+        run_command(
+            [
+                "kubectl",
+                "exec",
+                "-n",
+                "welkin-system",
+                "deploy/openmeter-collector",
+                "--",
+                "curl",
+                "-s",
+                "http://openmeter-api:80/api/v1/meters/kubernetes-pod-exec-time/values?windowSize=1h&subject=tenant-indep",
+            ],
+            artifact_dir,
+            "openmeter-check.log",
+            allow_failure=True,
+        )
+
+        logs = subprocess.run(
+            [
+                "kubectl",
+                "logs",
+                "-n",
+                "welkin-system",
+                "deploy/openmeter-collector",
+                "--tail=200",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        write_text(
+            artifact_dir / "collector-logs.log",
+            command_log(
+                ["kubectl", "logs", "deploy/openmeter-collector"],
+                logs.returncode,
+                logs.stdout,
+                logs.stderr,
+            ),
+        )
+
+        economic_ok = _inspect_openmeter(artifact_dir / "openmeter-check.log")
+        notes.append(
+            f"economic_continuity: {'confirmed' if economic_ok else 'not confirmed'}"
+        )
+        if not economic_ok:
+            raise RuntimeError(
+                "economic plane did not report usage under archive failure"
+            )
+
+        result = "passed"
+    except Exception as exc:
+        notes.append(str(exc))
+        capture_failure_diagnostics(artifact_dir)
+        result = "failed"
+    finally:
+        run_command(
+            ["kind", "delete", "cluster", "--name", "welkin-certification"],
+            artifact_dir,
+            "kind-delete.log",
+            allow_failure=True,
+        )
+
+    return result, notes
+
+
+def _inspect_openmeter(log: Path) -> bool:
+    if not log.exists():
+        return False
+    text = log.read_text()
+    for line in text.splitlines():
+        if '"value"' in line:
+            value = (
+                line.split('"value"', 1)[1].split(":", 1)[1].strip().split("}", 1)[0]
+            )
+            try:
+                if float(value) > 0:
+                    return True
+            except ValueError:
+                continue
+    return False
+
+
 def malformed_boundary(artifact_dir: Path) -> tuple[str, list[str]]:
     command = [
         str(CUE_BIN),
@@ -421,6 +618,8 @@ def main() -> None:
         result, notes = canonical_flow(args.artifact_dir)
     elif scenario["id"] == "malformed-boundary":
         result, notes = malformed_boundary(args.artifact_dir)
+    elif scenario["id"] == "plane-independence":
+        result, notes = plane_independence(args.artifact_dir)
     else:
         result = "planned"
         notes = ["scenario is scaffolded and not yet executable"]

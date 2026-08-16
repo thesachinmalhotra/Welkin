@@ -49,7 +49,7 @@ catalog: {
 			title: "Economic and archive remain independent"
 			claim: "Archive degradation must not prevent economic delivery."
 			verification: "Inject archive failure and prove the economic branch continues to accept canonical events."
-			status: "scaffolded"
+			status: "implemented"
 			scenarios: ["plane-independence"]
 			evidence: ["archive failure injection log", "economic continuity log", "branch separation evidence"]
 		}
@@ -121,11 +121,11 @@ catalog: {
 			title: "Runtime survives archive failure"
 			purpose: "Prove the runtime branch continues when archive delivery is degraded."
 			mode: "mock-prod"
-			status: "scaffolded"
+			status: "implemented"
 			guarantees: ["economic-archive-independence"]
 			verification: ["inject archive-side failure", "observe economic continuity", "compare branch-specific logs"]
 			evidence: ["archive failure log", "economic continuity log", "branch independence summary"]
-			notes: "This is scaffolded because the repo does not yet include a dedicated failure-injection harness for the archive plane."
+			notes: "Failure is injected by pointing the archive S3 endpoint at an unreachable address; the drop_on mechanism must drop archived messages without blocking the economic branch."
 		}
 
 		duplicate_billing: #Scenario & {
