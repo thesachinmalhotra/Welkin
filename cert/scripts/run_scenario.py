@@ -635,7 +635,7 @@ def main() -> None:
     subprocess.run(
         [
             sys.executable,
-            str(Path("render_evidence.py")),
+            str(Path("cert/scripts/render_evidence.py")),
             "--catalog",
             str(args.catalog),
             "--scenario",
