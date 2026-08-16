@@ -17,6 +17,7 @@ jobs:
       ARCHIVE_S3_SECRET_ACCESS_KEY: "minio123"
       ARCHIVE_S3_BUCKET: "welkin-archive"
       ARCHIVE_S3_REGION: "us-east-1"
+      ARCHIVE_S3_ENDPOINT: "http://minio.welkin-system.svc.cluster.local:9000"
 
     steps:
       - uses: actions/checkout@v4
