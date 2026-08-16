@@ -59,6 +59,7 @@ def run_command(
         input=stdin_text,
         text=True,
         capture_output=True,
+        env=os.environ.copy(),
     )
     elapsed = time.time() - started
     write_text(
