@@ -1,1 +1,0 @@
-../timoni/values/minio.cue

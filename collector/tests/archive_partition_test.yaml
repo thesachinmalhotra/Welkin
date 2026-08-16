@@ -1,0 +1,45 @@
+tests:
+  - name: derives archive partition from canonical cloudevent
+    target_mapping: ../resources/processors/archive_partition.blobl
+    environment: {}
+    input_batch:
+      - file_content: ../fixtures/canonical-event.json
+    output_batches:
+      - - json_equals:
+            partition:
+              source: kubernetes-api
+              eventType: kube-pod-exec-time
+              day: "2026-07-27"
+            event:
+              id: sha256:kubernetes-api:pod-demo:2026-07-27T00:00:15Z
+              specversion: "1.0"
+              type: kube-pod-exec-time
+              source: kubernetes-api
+              time: "2026-07-27T00:00:15Z"
+              subject: tenant-acme
+              data:
+                pod_name: demo-pod
+                pod_namespace: acme
+                duration_seconds: 15
+                region: us-east-1
+
+  - name: validates canonical cloudevent contract
+    target_processors: ../resources/processors/validate_cloudevent.yaml#/processor_resources/0
+    environment: {}
+    mocks:
+      welkin_validate_cloudevent:
+        mapping: 'root = if this.id == "" || this.subject == "" { deleted() } else { this }'
+    input_batch:
+      - file_content: ../fixtures/canonical-event.json
+    output_batches:
+      - - file_json_equals: ../fixtures/canonical-event.json
+
+  - name: rejects malformed canonical cloudevent
+    target_processors: ../resources/processors/validate_cloudevent.yaml#/processor_resources/0
+    environment: {}
+    mocks:
+      welkin_validate_cloudevent:
+        mapping: 'root = if this.id == "" || this.subject == "" { deleted() } else { this }'
+    input_batch:
+      - file_content: ../../cert/fixtures/malformed-canonical-event.json
+    output_batches: []

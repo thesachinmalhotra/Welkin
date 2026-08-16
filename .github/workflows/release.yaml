@@ -34,7 +34,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME}"
           timoni artifact build \
-            -f release \
+            -f dist/oci \
             -t "${VERSION}" \
             -o welkin-${VERSION}.oci.tar
 

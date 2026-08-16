@@ -63,9 +63,9 @@ Before pushing, run the checks that apply to your changes:
 | Change type | Run this |
 |---|---|
 | CUE files | `cue vet` on the relevant schemas |
-| Benthos config | `rpk connect test engine/tests/*.yaml` |
-| Timoni bundle | `timoni bundle vet -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue -f timoni/values/collector.cue -f timoni/values/openmeter.cue --runtime-from-env` |
-| Python scripts | `python3 -m py_compile scripts/certification/*.py` |
+| Benthos config | `rpk connect test collector/tests/*.yaml` |
+| Timoni bundle | `timoni bundle vet -f platform/bundles/welkin.bundle.cue -f platform/runtime/welkin.runtime.cue -f platform/collector/collector.cue -f platform/economic/openmeter.cue -f platform/economic/postgres.cue -f platform/archive/minio.cue --runtime-from-env` |
+| Python scripts | `python3 -m py_compile cert/scripts/*.py` |
 | Commit messages | `pre-commit run commitizen --hook-stage commit-msg` |
 
 **No CI run until local checks are green.**
@@ -75,13 +75,15 @@ Before pushing, run the checks that apply to your changes:
 | Path | What lives here |
 |---|---|
 | `AGENTS.md` | Architecture, invariants, agent instructions |
-| `contracts/schema/` | Canonical CloudEvent and archive schemas |
-| `timoni/bundles/` | Platform composition (Timoni bundles) |
-| `timoni/runtime/` | Runtime contracts (Platform State) |
-| `timoni/values/` | Per-component Helm values (collector, openmeter) |
-| `engine/` | Collector test fixtures, Bloblang presets, rpk tests |
-| `certification/` | Certification catalog and evidence model |
-| `scripts/certification/` | Certification harness scripts |
+| `spec/schema/` | Canonical CloudEvent and archive schemas |
+| `platform/bundles/` | Platform composition (Timoni bundles) |
+| `platform/runtime/` | Runtime contracts (Platform State) |
+| `platform/economic/` | Economic plane components (OpenMeter, Postgres) |
+| `platform/archive/` | Archive plane components (MinIO) |
+| `platform/collector/` | Collector component values |
+| `collector/` | Collector test fixtures, Bloblang presets, rpk tests |
+| `cert/` | Certification catalog and evidence model |
+| `cert/scripts/` | Certification harness scripts |
 | `.github/workflows/` | CI workflows |
 
 ## What NOT to do
@@ -91,7 +93,7 @@ Before pushing, run the checks that apply to your changes:
 - Do not hardcode credentials in Platform State (`.cue` files)
 - Do not use `@latest` or unpinned versions
 - Do not bypass the collector boundary (always POST to `:4195/events`)
-- `engine/config/base.yaml` was deleted in Phase 1 — collector config lives only in `timoni/values/collector.cue`
+- `collector/config/base.yaml` was deleted in Phase 1 — collector config lives only in `platform/collector/collector.cue`
 - Do not commit secrets, tokens, or keys
 
 ## AI agents

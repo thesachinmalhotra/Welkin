@@ -28,15 +28,15 @@ jobs:
         run: go install cuelang.org/go/cmd/cue@v0.4.0
 
       - name: Export certification catalog
-        run: ~/go/bin/cue export certification/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
+        run: ~/go/bin/cue export cert/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
 
       - name: Validate certification catalog
-        run: python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
+        run: python cert/scripts/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
 
       - name: Emit scenario matrix
         id: matrix
         run: |
-          matrix=$(python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json --matrix)
+          matrix=$(python cert/scripts/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json --matrix)
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
 
   certify:

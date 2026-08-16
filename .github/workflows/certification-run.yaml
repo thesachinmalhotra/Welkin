@@ -42,14 +42,14 @@ jobs:
 
       - name: Export catalog
         run: |
-          cue eval -e 'catalog' certification/catalog.cue --out json -o certification/catalog.json
+          cue eval -e 'catalog' cert/catalog.cue --out json -o cert/catalog.json
 
       - name: Run certification scenario
         run: |
           mkdir -p artifacts
-          python3 scripts/certification/run_scenario.py \
-            --catalog certification/catalog.json \
-            --scenario "certification/scenarios/${{ inputs.scenario_id }}.json" \
+          python3 cert/scripts/run_scenario.py \
+            --catalog cert/catalog.json \
+            --scenario "cert/scenarios/${{ inputs.scenario_id }}.json" \
             --artifact-dir artifacts/
 
       - name: Upload artifacts

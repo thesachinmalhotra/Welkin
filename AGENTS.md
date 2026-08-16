@@ -307,13 +307,17 @@ Enforced by `.commitlintrc.json` and `.pre-commit-config.yaml`.
 | Path | What lives here |
 |---|---|
 | `AGENTS.md` | Architecture, invariants, agent instructions |
-| `contracts/schema/` | Canonical CloudEvent and archive schemas |
-| `timoni/bundles/` | Platform composition (Timoni bundles) |
-| `timoni/runtime/` | Runtime contracts (Platform State) |
-| `timoni/values/` | Per-component Helm values |
-| `engine/` | Collector test fixtures, Bloblang presets, rpk tests |
-| `certification/` | Certification catalog and evidence model |
-| `scripts/certification/` | Certification harness scripts |
+| `spec/schema/` | Canonical CloudEvent and archive schemas |
+| `platform/bundles/` | Platform composition (Timoni bundles) |
+| `platform/runtime/` | Runtime contracts (Platform State) |
+| `platform/economic/` | Economic plane components (OpenMeter, Postgres) |
+| `platform/archive/` | Archive plane components (MinIO) |
+| `platform/collector/` | Collector component values |
+| `collector/` | Collector test fixtures, Bloblang presets, rpk tests |
+| `cert/` | Certification catalog, scenarios, and evidence model |
+| `cert/scripts/` | Certification harness scripts |
+| `dist/flux/` | Flux OCI consumption resources |
+| `dist/oci/` | Release OCI artifact source (symlinks to platform/) |
 | `.github/workflows/` | CI workflows |
 
 ### What NOT to do

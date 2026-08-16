@@ -6,12 +6,12 @@ Welkin v1 has one governing rule: producer diversity is allowed only before cano
 
 ## What this repo gives you
 
-- `contracts/` for canonical event and archive contract definitions
-- `engine/` for the OpenMeter Collector substrate: canonical validation, fan-out resources, archive handling, tests, and optional source presets
-- `timoni/` for the primary install surface and runtime contract
-- `flux/` for OCI-based GitOps handoff after publishing release artifacts
+- `spec/` for canonical event and archive contract definitions
+- `collector/` for the OpenMeter Collector substrate: canonical validation, fan-out resources, archive handling, tests, and optional source presets
+- `platform/` for the primary install surface and runtime contract (plane-based)
+- `dist/` for OCI-based GitOps handoff after publishing release artifacts
 - `.github/workflows/` for validation and certification workflows
-- `certification/` for the architectural guarantees, scenario catalog, and evidence model
+- `cert/` for the architectural guarantees, scenario catalog, and evidence model
 - `docs/` for architecture, deployment, certification, and operator guidance
 
 ## Core architecture
@@ -46,7 +46,7 @@ Planned certifications remain cataloged explicitly instead of being disguised as
 
 You do not need to run the full stack on your laptop to use this repo.
 
-1. Review and adapt runtime values in `timoni/runtime/welkin.runtime.cue`.
+1. Review and adapt runtime values in `platform/runtime/welkin.runtime.cue`.
 2. Supply environment- or file-based secrets for OpenMeter and archive credentials.
 3. Apply the Timoni bundle into an ephemeral or real Kubernetes environment.
 4. Let Flux reconcile OpenMeter and the collector.

@@ -36,21 +36,21 @@ jobs:
           sudo install /tmp/rpk/rpk /usr/local/bin/rpk
 
       - name: Export certification catalog
-        run: ~/go/bin/cue export certification/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
+        run: ~/go/bin/cue export cert/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
 
       - name: Validate certification catalog
-        run: python scripts/certification/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
+        run: python cert/scripts/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
 
       - name: Compile certification scripts
-        run: python3 -m py_compile scripts/certification/validate_catalog.py scripts/certification/render_evidence.py scripts/certification/run_scenario.py
+        run: python3 -m py_compile cert/scripts/validate_catalog.py cert/scripts/render_evidence.py cert/scripts/run_scenario.py
       - name: Validate canonical contract
-        run: ~/go/bin/cue vet -d '#CloudEvent' ./engine/fixtures/canonical-event.json ./contracts/schema/cloudevent.cue
+        run: ~/go/bin/cue vet -d '#CloudEvent' ./collector/fixtures/canonical-event.json ./spec/schema/cloudevent.cue
 
       - name: Run collector tests
-        run: rpk connect test ./engine/tests/*.yaml
+        run: rpk connect test ./collector/tests/*.yaml
 
       - name: Vet Timoni bundle
-        run: ~/go/bin/timoni bundle vet -f timoni/bundles/welkin.bundle.cue -f timoni/runtime/welkin.runtime.cue -f timoni/values/collector.cue -f timoni/values/openmeter.cue -f timoni/values/postgres.cue -f timoni/values/minio.cue --runtime-from-env
+        run: ~/go/bin/timoni bundle vet -f platform/bundles/welkin.bundle.cue -f platform/runtime/welkin.runtime.cue -f platform/collector/collector.cue -f platform/economic/openmeter.cue -f platform/economic/postgres.cue -f platform/archive/minio.cue --runtime-from-env
         env:
           OPENMETER_TOKEN: ${{ secrets.OPENMETER_TOKEN }}
           ARCHIVE_S3_ENDPOINT: "http://minio:9000"
