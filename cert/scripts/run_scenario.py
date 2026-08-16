@@ -300,7 +300,7 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             ],
             artifact_dir,
             "timoni-apply.log",
-            include_output=False,
+            include_output=True,
         )
 
         run_command(
@@ -411,7 +411,7 @@ def plane_independence(artifact_dir: Path) -> tuple[str, list[str]]:
             ],
             artifact_dir,
             "timoni-apply.log",
-            include_output=False,
+            include_output=True,
         )
 
         run_command(
