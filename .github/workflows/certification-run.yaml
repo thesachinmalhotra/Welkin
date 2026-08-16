@@ -25,7 +25,7 @@ jobs:
       - name: Install Go tools
         run: |
           go install cuelang.org/go/cmd/cue@v0.4.0
-          go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
+          go install github.com/stefanprodan/timoni/cmd/timoni@v0.31.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
       - name: Install kind
