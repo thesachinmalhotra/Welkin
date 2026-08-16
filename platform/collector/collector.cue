@@ -119,7 +119,7 @@ collectorValues: {
           pattern: "fan_out"
           outputs: [
             {resource: "welkin_economic_openmeter"},
-            {drop_on: {back_pressure: "30s", output: {resource: "welkin_archive_s3"}}},
+            {drop_on: {back_pressure: "5s", output: {resource: "welkin_archive_s3"}}},
           ]
         }
       }
