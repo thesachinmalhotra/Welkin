@@ -34,7 +34,7 @@ runtime: {
   }
 
   archive: {
-    endpoint:       "http://minio.welkin-system.svc.cluster.local:9000"
+    endpoint:       *     "http://minio.welkin-system.svc.cluster.local:9000" | string
     bucket:         string @timoni(runtime:string:ARCHIVE_S3_BUCKET)
     region:         "us-east-1"
     forcePathStyle: true
