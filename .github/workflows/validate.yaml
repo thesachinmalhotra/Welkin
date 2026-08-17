@@ -22,10 +22,10 @@ jobs:
           python-version: '3.11'
 
       - name: Install CUE
-        run: go install cuelang.org/go/cmd/cue@v0.4.0
+        run: go install cuelang.org/go/cmd/cue@v0.17.1
 
       - name: Install Timoni
-        run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
+        run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.31.0
 
       - name: Install rpk (test-only tooling)
         # rpk is used only as a local/CI test harness for Benthos/Redpanda Connect mappings

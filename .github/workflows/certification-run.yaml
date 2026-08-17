@@ -24,7 +24,7 @@ jobs:
 
       - name: Install Go tools
         run: |
-          go install cuelang.org/go/cmd/cue@v0.4.0
+          go install cuelang.org/go/cmd/cue@v0.17.1
           go install github.com/stefanprodan/timoni/cmd/timoni@v0.31.0
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
@@ -43,7 +43,7 @@ jobs:
 
       - name: Export catalog
         run: |
-          cue eval -e 'catalog' cert/catalog.cue --out json -o cert/catalog.json
+          cue export -e 'catalog' cert/catalog.cue -o cert/catalog.json
 
       - name: Run certification scenario
         run: |
