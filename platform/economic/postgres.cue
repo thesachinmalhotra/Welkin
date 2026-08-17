@@ -9,7 +9,6 @@ postgresValues: {
   sync: {
     targetNamespace: runtime.namespace
     timeout:         15
-    disableWait:     true
   }
   helmValues: {
     fullnameOverride: "postgres"
@@ -20,15 +19,6 @@ postgresValues: {
       database:             "application"
       enablePostgresUser:   false
     }
-    primary: {
-      persistence: enabled: false
-      containerSecurityContext: enabled: false
-      livenessProbe: enabled: false
-      readinessProbe: enabled: false
-    }
-    volumePermissions: enabled: false
-    metrics: disabled: true
-    networkPolicy: enabled: false
-    resourcesPreset: "none"
+    primary: persistence: enabled: false
   }
 }
