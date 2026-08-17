@@ -162,6 +162,36 @@ def wait_for_namespace(namespace: str, timeout: int = 120) -> bool:
     return False
 
 
+def wait_for_pods(
+    label: str, namespace: str, timeout: int = 300, artifact_dir: Path | None = None
+) -> bool:
+    """Wait for pods matching label to exist and be ready."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        result = subprocess.run(
+            [
+                "kubectl",
+                "get",
+                "pods",
+                "-l",
+                label,
+                "-n",
+                namespace,
+                "--no-headers",
+                "--ignore-not-found",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        lines = [l for l in result.stdout.strip().splitlines() if l.strip()]
+        if lines:
+            ready = all("Running" in l or "Completed" in l for l in lines)
+            if ready:
+                return True
+        time.sleep(5)
+    return False
+
+
 def run_certification_job(artifact_dir: Path) -> tuple[bool, str]:
     """Create the certification Job, wait for completion, capture logs."""
     script_path = Path("cert/scripts/certify.sh")
@@ -383,37 +413,26 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             include_output=True,
         )
 
-        run_command(
-            [
-                "kubectl",
-                "wait",
-                "--for=condition=ready",
-                "pod",
-                "-l",
-                "app.kubernetes.io/name=openmeter-api",
-                "-n",
-                "welkin-system",
-                "--timeout=300s",
-            ],
-            artifact_dir,
-            "wait-openmeter.log",
-            allow_failure=True,
+        openmeter_ready = wait_for_pods(
+            "app.kubernetes.io/name=openmeter-api",
+            "welkin-system",
+            timeout=300,
+            artifact_dir=artifact_dir,
         )
-        run_command(
-            [
-                "kubectl",
-                "wait",
-                "--for=condition=ready",
-                "pod",
-                "-l",
-                "app.kubernetes.io/name=benthos-collector",
-                "-n",
-                "welkin-system",
-                "--timeout=300s",
-            ],
-            artifact_dir,
-            "wait-collector.log",
-            allow_failure=True,
+        write_text(
+            artifact_dir / "wait-openmeter.log",
+            f"wait_for_pods openmeter-api: {'ready' if openmeter_ready else 'timeout'}\n",
+        )
+
+        collector_ready = wait_for_pods(
+            "app.kubernetes.io/name=benthos-collector",
+            "welkin-system",
+            timeout=300,
+            artifact_dir=artifact_dir,
+        )
+        write_text(
+            artifact_dir / "wait-collector.log",
+            f"wait_for_pods benthos-collector: {'ready' if collector_ready else 'timeout'}\n",
         )
 
         job_ok, job_output = run_certification_job(artifact_dir)
@@ -501,37 +520,26 @@ def plane_independence(artifact_dir: Path) -> tuple[str, list[str]]:
             include_output=True,
         )
 
-        run_command(
-            [
-                "kubectl",
-                "wait",
-                "--for=condition=ready",
-                "pod",
-                "-l",
-                "app.kubernetes.io/name=openmeter-api",
-                "-n",
-                "welkin-system",
-                "--timeout=300s",
-            ],
-            artifact_dir,
-            "wait-openmeter.log",
-            allow_failure=True,
+        openmeter_ready = wait_for_pods(
+            "app.kubernetes.io/name=openmeter-api",
+            "welkin-system",
+            timeout=300,
+            artifact_dir=artifact_dir,
         )
-        run_command(
-            [
-                "kubectl",
-                "wait",
-                "--for=condition=ready",
-                "pod",
-                "-l",
-                "app.kubernetes.io/name=benthos-collector",
-                "-n",
-                "welkin-system",
-                "--timeout=300s",
-            ],
-            artifact_dir,
-            "wait-collector.log",
-            allow_failure=True,
+        write_text(
+            artifact_dir / "wait-openmeter.log",
+            f"wait_for_pods openmeter-api: {'ready' if openmeter_ready else 'timeout'}\n",
+        )
+
+        collector_ready = wait_for_pods(
+            "app.kubernetes.io/name=benthos-collector",
+            "welkin-system",
+            timeout=300,
+            artifact_dir=artifact_dir,
+        )
+        write_text(
+            artifact_dir / "wait-collector.log",
+            f"wait_for_pods benthos-collector: {'ready' if collector_ready else 'timeout'}\n",
         )
 
         # POST canonical events repeatedly. The economic branch must keep
