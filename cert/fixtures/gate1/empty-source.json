@@ -1,0 +1,11 @@
+{
+  "id": "sha256:kubernetes-api:pod-demo:2026-07-27T00:00:15Z",
+  "specversion": "1.0",
+  "type": "kube-pod-exec-time",
+  "source": "",
+  "time": "2026-07-27T00:00:15Z",
+  "subject": "tenant-acme",
+  "data": {
+    "pod_name": "demo-pod"
+  }
+}

@@ -7,5 +7,6 @@ package schema
 	source:      string & != ""
 	time:        string & != ""
 	subject:     string & != ""
-	data:        {...}
+	data!:       [string]: _
+	...
 }

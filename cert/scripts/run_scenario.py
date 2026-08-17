@@ -250,11 +250,62 @@ def run_certification_job(artifact_dir: Path) -> tuple[bool, str]:
     return succeeded, logs.stdout
 
 
+GATE1_FIXTURE_MATRIX: list[tuple[str, bool]] = [
+    ("valid", True),
+    ("missing-id", False),
+    ("missing-subject", False),
+    ("missing-data", False),
+    ("wrong-specversion", False),
+    ("empty-source", False),
+    ("empty-type", False),
+    ("invalid-data-shape", False),
+    ("extra-fields", True),
+]
+
+
+def gate1_contract_matrix(artifact_dir: Path) -> list[str]:
+    notes: list[str] = []
+    schema = "./spec/schema/cloudevent.cue"
+    base = Path("./cert/fixtures/gate1")
+    failures = 0
+    for name, expect_pass in GATE1_FIXTURE_MATRIX:
+        fixture = base / f"{name}.json"
+        result = run_command(
+            [
+                str(CUE_BIN),
+                "vet",
+                "-d",
+                "#CloudEvent",
+                str(fixture),
+                schema,
+            ],
+            artifact_dir,
+            f"gate1-{name}.log",
+            allow_failure=True,
+        )
+        passed = result.returncode == 0
+        status = "PASS" if passed else "FAIL"
+        if passed != expect_pass:
+            notes.append(
+                f"GATE1_MISMATCH: {name} expected={'PASS' if expect_pass else 'FAIL'} got={status}"
+            )
+            failures += 1
+        else:
+            notes.append(f"GATE1_OK: {name} {status}")
+    if failures:
+        raise RuntimeError(
+            f"Gate 1 contract matrix: {failures} fixture(s) diverge from expected"
+        )
+    notes.append("GATE1_MATRIX: all fixtures match expected CUE decisions")
+    return notes
+
+
 def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
     notes: list[str] = []
     overlay = build_overlay()
 
     try:
+        notes.extend(gate1_contract_matrix(artifact_dir))
         run_command(
             [
                 str(CUE_BIN),
