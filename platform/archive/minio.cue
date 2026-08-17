@@ -4,7 +4,7 @@ minioValues: {
   repository: url: "oci://registry-1.docker.io/bitnamicharts"
   chart: {
     name:    "minio"
-    version: "14.8.11"
+    version: "14.9.2"
   }
   sync: {
     targetNamespace: runtime.namespace

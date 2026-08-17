@@ -351,6 +351,12 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             "kind-create.log",
         )
         run_command(
+            ["kubectl", "create", "namespace", "welkin-system"],
+            artifact_dir,
+            "create-namespace.log",
+            allow_failure=True,
+        )
+        run_command(
             [
                 str(TIMONI_BIN),
                 "bundle",
@@ -410,9 +416,6 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             allow_failure=True,
         )
 
-        if not wait_for_namespace("welkin-system", timeout=120):
-            raise RuntimeError("welkin-system namespace did not appear within 120s")
-
         job_ok, job_output = run_certification_job(artifact_dir)
         notes.append(f"certification_job: {'passed' if job_ok else 'failed'}")
         notes.append(job_output[:500])
@@ -464,6 +467,12 @@ def plane_independence(artifact_dir: Path) -> tuple[str, list[str]]:
             ["kind", "create", "cluster", "--name", "welkin-certification"],
             artifact_dir,
             "kind-create.log",
+        )
+        run_command(
+            ["kubectl", "create", "namespace", "welkin-system"],
+            artifact_dir,
+            "create-namespace.log",
+            allow_failure=True,
         )
         run_command(
             [

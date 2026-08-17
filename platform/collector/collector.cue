@@ -8,25 +8,13 @@ package main
 collectorValues: {
   repository: url: "oci://ghcr.io/openmeterio/helm-charts"
   chart: {
-    // Use an OCI chart reference with digest for immutability. Flux/HelmRelease accepts OCI chart references
-    // of the form: oci://ghcr.io/openmeterio/helm-charts/benthos-collector@sha256:<digest>
-    // Chart digest (immutable) for v1.0.0-beta.232:
-    // sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841
-    name:    "oci://ghcr.io/openmeterio/helm-charts/benthos-collector@sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841"
+    name:    "benthos-collector"
     version: runtime.charts.collectorVersion
   }
   sync: targetNamespace: runtime.namespace
   helmValues: {
     fullnameOverride: "openmeter-collector"
-    // With configFile set, the chart ignores preset.
-    // Keep this value for documentation/discoverability.
     preset:           runtime.collector.preset
-
-  // Pin the container image tag to the chart appVersion (collectorVersion)
-  // Chart digest (immutable): sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841
-  // Image digests (immutable): amd64 sha256:4a816108919b77d35209ad9053dca417897bfc463cd6c13ff71262ad35103119
-  //                                    arm64 sha256:d2d0f2d54ae51e129bf1add6be78aa0e0e2114b39980979db95c815eca059d5e
-  // Recommended Platform State pin: use chart OCI digest + trust the packaged chart templates to select the correct image tag.
 
   image: {
     repository: "ghcr.io/openmeterio/benthos-collector"

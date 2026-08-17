@@ -4,7 +4,7 @@ postgresValues: {
   repository: url: "oci://registry-1.docker.io/bitnamicharts"
   chart: {
     name:    "postgresql"
-    version: "16.4.12"
+    version: "16.7.13"
   }
   sync: {
     targetNamespace: runtime.namespace
