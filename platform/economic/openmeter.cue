@@ -8,6 +8,7 @@ openmeterValues: {
   }
   sync: {
     targetNamespace: runtime.namespace
+    createNamespace: true
     timeout:         15
   }
   helmValues: {

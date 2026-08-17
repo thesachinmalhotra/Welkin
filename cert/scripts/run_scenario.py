@@ -140,6 +140,28 @@ spec:
 """
 
 
+def wait_for_namespace(namespace: str, timeout: int = 120) -> bool:
+    """Wait for a namespace to exist. Returns True if created, False on timeout."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        result = subprocess.run(
+            [
+                "kubectl",
+                "get",
+                "namespace",
+                namespace,
+                "--no-headers",
+                "--ignore-not-found",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout.strip():
+            return True
+        time.sleep(2)
+    return False
+
+
 def run_certification_job(artifact_dir: Path) -> tuple[bool, str]:
     """Create the certification Job, wait for completion, capture logs."""
     script_path = Path("cert/scripts/certify.sh")
@@ -387,6 +409,9 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             "wait-collector.log",
             allow_failure=True,
         )
+
+        if not wait_for_namespace("welkin-system", timeout=120):
+            raise RuntimeError("welkin-system namespace did not appear within 120s")
 
         job_ok, job_output = run_certification_job(artifact_dir)
         notes.append(f"certification_job: {'passed' if job_ok else 'failed'}")

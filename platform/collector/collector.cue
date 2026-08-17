@@ -15,7 +15,10 @@ collectorValues: {
     name:    "oci://ghcr.io/openmeterio/helm-charts/benthos-collector@sha256:bf2afa50f4ccf43ae05a689d65330d3181af75054658163b33e25b862a4a7841"
     version: runtime.charts.collectorVersion
   }
-  sync: targetNamespace: runtime.namespace
+  sync: {
+    targetNamespace: runtime.namespace
+    createNamespace: true
+  }
   helmValues: {
     fullnameOverride: "openmeter-collector"
     // With configFile set, the chart ignores preset.
