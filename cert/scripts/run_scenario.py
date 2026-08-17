@@ -85,8 +85,8 @@ def build_overlay(archive_endpoint: str | None = None) -> Path:
 runtime: {{
   namespace: "welkin-system"
   charts: {{
-    fluxAioVersion:    "{os.environ.get("FLUX_AIO_VERSION", "2.5.0-0")}"
-    fluxModuleVersion: "{os.environ.get("FLUX_MODULE_VERSION", "2.5.0-0")}"
+    fluxAioVersion:    "{os.environ.get("FLUX_AIO_VERSION", "2.9.4-0")}"
+    fluxModuleVersion: "{os.environ.get("FLUX_MODULE_VERSION", "2.9.4-0")}"
     openmeterVersion:  "{os.environ.get("OPENMETER_CHART_VERSION", "1.0.0-beta.232")}"
     collectorVersion:  "{os.environ.get("COLLECTOR_CHART_VERSION", "1.0.0-beta.232")}"
   }}
@@ -138,28 +138,6 @@ spec:
             name: welkin-certify-script
             defaultMode: 0755
 """
-
-
-def wait_for_namespace(namespace: str, timeout: int = 120) -> bool:
-    """Wait for a namespace to exist. Returns True if created, False on timeout."""
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        result = subprocess.run(
-            [
-                "kubectl",
-                "get",
-                "namespace",
-                namespace,
-                "--no-headers",
-                "--ignore-not-found",
-            ],
-            capture_output=True,
-            text=True,
-        )
-        if result.stdout.strip():
-            return True
-        time.sleep(2)
-    return False
 
 
 def wait_for_pods(
@@ -381,12 +359,6 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
             "kind-create.log",
         )
         run_command(
-            ["kubectl", "create", "namespace", "welkin-system"],
-            artifact_dir,
-            "create-namespace.log",
-            allow_failure=True,
-        )
-        run_command(
             [
                 str(TIMONI_BIN),
                 "bundle",
@@ -486,12 +458,6 @@ def plane_independence(artifact_dir: Path) -> tuple[str, list[str]]:
             ["kind", "create", "cluster", "--name", "welkin-certification"],
             artifact_dir,
             "kind-create.log",
-        )
-        run_command(
-            ["kubectl", "create", "namespace", "welkin-system"],
-            artifact_dir,
-            "create-namespace.log",
-            allow_failure=True,
         )
         run_command(
             [

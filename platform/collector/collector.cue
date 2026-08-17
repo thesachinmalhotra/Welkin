@@ -11,7 +11,10 @@ collectorValues: {
     name:    "benthos-collector"
     version: runtime.charts.collectorVersion
   }
-  sync: targetNamespace: runtime.namespace
+  sync: {
+    targetNamespace: runtime.namespace
+    createNamespace: true
+  }
   helmValues: {
     fullnameOverride: "openmeter-collector"
     preset:           runtime.collector.preset

@@ -4,10 +4,11 @@ minioValues: {
   repository: url: "oci://registry-1.docker.io/bitnamicharts"
   chart: {
     name:    "minio"
-    version: "14.9.2"
+    version: "17.0.21"
   }
   sync: {
     targetNamespace: runtime.namespace
+    createNamespace: true
     timeout:         15
   }
   helmValues: {
