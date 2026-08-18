@@ -26,19 +26,18 @@ jobs:
         run: |
           kubectl create namespace welkin-system
           kubectl create deployment mock-openmeter -n welkin-system --image=python:3.12-slim -- python3 -c "
-          import http.server, sys
+          import http.server
           class H(http.server.BaseHTTPRequestHandler):
             def do_POST(self):
-              length = int(self.headers.get('Content-Length', 0))
-              body = self.rfile.read(length)
-              print('EVENT:' + body.decode(), flush=True)
+              b = self.rfile.read(int(self.headers.get('Content-Length', 0)))
+              print('EVENT:' + b.decode(), flush=True)
               self.send_response(200)
               self.end_headers()
               self.wfile.write(b'{\"ok\":true}')
             def log_message(self, *a): pass
           http.server.HTTPServer(('0.0.0.0', 8086), H).serve_forever()
           "
-          kubectl wait --for=condition=ready pod -l app=mock-openmeter -n welkin-system --timeout=60s
+          kubectl rollout status deployment/mock-openmeter -n welkin-system --timeout=120s
 
       - name: Deploy collector
         run: |
