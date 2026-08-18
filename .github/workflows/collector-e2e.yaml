@@ -52,7 +52,7 @@ jobs:
 
       - name: Wait for collector
         run: |
-          kubectl rollout status deployment/openmeter-collector -n welkin-system --timeout=300s
+          kubectl rollout status statefulset/openmeter-collector -n welkin-system --timeout=300s
 
       - name: Send test event to collector
         run: |
