@@ -1,4 +1,0 @@
-processor_resources:
-  - label: welkin_validate_cloudevent
-    json_schema:
-      schema_path: file://../../schemas/cloudevent.schema.json
