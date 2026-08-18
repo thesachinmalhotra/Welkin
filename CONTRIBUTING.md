@@ -64,7 +64,6 @@ Before pushing, run the checks that apply to your changes:
 |---|---|
 | CUE files | `cue vet` on the relevant schemas |
 | Timoni bundle | `timoni bundle vet -f platform/bundles/welkin.bundle.cue -f platform/runtime/welkin.runtime.cue -f platform/collector/collector.cue -f platform/economic/openmeter.cue -f platform/economic/postgres.cue -f platform/archive/minio.cue --runtime-from-env` |
-| Python scripts | `python3 -m py_compile cert/scripts/*.py` |
 | Commit messages | `pre-commit run commitizen --hook-stage commit-msg` |
 
 **No CI run until local checks are green.**
@@ -80,8 +79,7 @@ Before pushing, run the checks that apply to your changes:
 | `platform/economic/` | Economic plane components (OpenMeter, Postgres) |
 | `platform/archive/` | Archive plane components (MinIO) |
 | `platform/collector/` | Collector component values |
-| `cert/` | Certification catalog and evidence model |
-| `cert/scripts/` | Certification harness scripts |
+| `dist/flux/certification/` | Certification Job manifest |
 | `.github/workflows/` | CI workflows |
 
 ## What NOT to do

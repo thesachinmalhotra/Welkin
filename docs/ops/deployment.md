@@ -66,6 +66,6 @@ timoni bundle apply \
 
 ## CI and remote validation
 
-Use `.github/workflows/validate.yaml` for static validation and `.github/workflows/ephemeral-smoke.yaml` for remote cluster deployment checks.
+Use `.github/workflows/validate.yaml` for static validation and `.github/workflows/certification-e2e.yml` for full end-to-end deployment checks in an ephemeral cluster.
 
 This is the intended path when you do not want to run the stack locally.

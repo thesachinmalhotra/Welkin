@@ -350,9 +350,6 @@ Enforced by `.commitlintrc.json` and `.pre-commit-config.yaml`.
 | `platform/economic/` | Economic plane components (OpenMeter, Postgres) |
 | `platform/archive/` | Archive plane components (MinIO) |
 | `platform/collector/` | Collector component values |
-| `cert/` | Certification catalog, scenarios, and evidence model |
-| `cert/scripts/` | Certification harness scripts |
-| `dist/flux/` | Flux OCI consumption resources |
 | `dist/oci/` | Release OCI artifact source (symlinks to platform/) |
 | `.github/workflows/` | CI workflows |
 

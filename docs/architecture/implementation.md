@@ -17,7 +17,7 @@ The collector uses the upstream `benthos-collector` Helm chart with its native `
 - `openmeter.url` and `openmeter.token` configure the native output.
 - Env vars configure preset behavior.
 
-The Canonical CloudEvent contract is defined by CUE in `spec/schema/cloudevent.cue` and validated against fixtures in `cert/fixtures/gate1/`.
+The Canonical CloudEvent contract is defined by CUE in `spec/schema/cloudevent.cue` and validated via `cue vet`.
 
 ## Delivery posture
 

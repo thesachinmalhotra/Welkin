@@ -16,25 +16,11 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Install CUE
         run: go install cuelang.org/go/cmd/cue@v0.17.1
 
       - name: Install Timoni
         run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.31.0
-
-      - name: Export certification catalog
-        run: ~/go/bin/cue export cert/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
-
-      - name: Validate certification catalog
-        run: python cert/scripts/validate_catalog.py --catalog /tmp/welkin-certification-catalog.json
-
-      - name: Compile certification scripts
-        run: python3 -m py_compile cert/scripts/validate_catalog.py cert/scripts/render_evidence.py cert/scripts/run_scenario.py
 
       - name: Vet Timoni bundle
         run: ~/go/bin/timoni bundle vet -f platform/bundles/welkin.bundle.cue -f platform/runtime/welkin.runtime.cue -f platform/collector/collector.cue -f platform/economic/openmeter.cue -f platform/economic/postgres.cue -f platform/archive/minio.cue --runtime-from-env

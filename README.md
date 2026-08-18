@@ -8,9 +8,8 @@ Welkin v1 has one governing rule: producer diversity is allowed only before cano
 
 - `spec/` for canonical event and archive contract definitions
 - `platform/` for the primary install surface and runtime contract (plane-based, including the OpenMeter Collector via `platform/collector/`)
-- `dist/` for OCI-based GitOps handoff after publishing release artifacts
+- `dist/oci/` for release OCI artifact source; `dist/flux/` for CI-only resources
 - `.github/workflows/` for validation and certification workflows
-- `cert/` for the architectural guarantees, scenario catalog, and evidence model
 - `docs/` for architecture, deployment, certification, and operator guidance
 
 ## Core architecture
@@ -32,14 +31,13 @@ Kubernetes support lives as an optional OpenMeter Collector preset example, not 
 
 ## Certification
 
-Welkin now includes a certification system that treats verification as architectural evidence rather than just test coverage.
+Welkin certification treats verification as architectural evidence rather than just test coverage. The `certification-e2e.yml` workflow deploys the platform into an ephemeral kind cluster, runs a Job that posts a canonical CloudEvent and asserts both planes, and bundles the evidence as an artifact.
 
 Current implemented certifications:
 - canonical event boundary
 - malformed event rejection
 - clean-room reproducibility through the canonical deployment path
-
-Planned certifications remain cataloged explicitly instead of being disguised as weak assertions.
+- economic/archive plane independence
 
 ## How to use this later
 
