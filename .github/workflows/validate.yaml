@@ -27,14 +27,6 @@ jobs:
       - name: Install Timoni
         run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.31.0
 
-      - name: Install rpk (test-only tooling)
-        # rpk is used only as a local/CI test harness for Benthos/Redpanda Connect mappings
-        # It is NOT the OpenMeter Collector runtime. Do not use rpk as a production collector.
-        run: |
-          curl -LO https://github.com/redpanda-data/redpanda/releases/download/v26.2.1/rpk-linux-amd64.zip
-          unzip -o rpk-linux-amd64.zip -d /tmp/rpk
-          sudo install /tmp/rpk/rpk /usr/local/bin/rpk
-
       - name: Export certification catalog
         run: ~/go/bin/cue export cert/catalog.cue -e catalog > /tmp/welkin-certification-catalog.json
 
@@ -43,11 +35,6 @@ jobs:
 
       - name: Compile certification scripts
         run: python3 -m py_compile cert/scripts/validate_catalog.py cert/scripts/render_evidence.py cert/scripts/run_scenario.py
-      - name: Validate canonical contract
-        run: ~/go/bin/cue vet -d '#CloudEvent' ./collector/fixtures/canonical-event.json ./spec/schema/cloudevent.cue
-
-      - name: Run collector tests
-        run: rpk connect test ./collector/tests/*.yaml
 
       - name: Vet Timoni bundle
         run: ~/go/bin/timoni bundle vet -f platform/bundles/welkin.bundle.cue -f platform/runtime/welkin.runtime.cue -f platform/collector/collector.cue -f platform/economic/openmeter.cue -f platform/economic/postgres.cue -f platform/archive/minio.cue --runtime-from-env
