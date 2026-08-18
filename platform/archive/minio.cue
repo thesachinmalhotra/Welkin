@@ -24,10 +24,10 @@ minioValues: {
       tag:        "2025.7.21-debian-12-r2"
     }
     auth: {
-      rootUser:     "minio"
-      rootPassword: "minio123"
+      rootUser:     runtime.archive.accessKeyId
+      rootPassword: runtime.archive.secretAccessKey
     }
-    defaultBuckets: "welkin-archive"
+    defaultBuckets: runtime.archive.bucket
     mode:           "standalone"
   }
 }

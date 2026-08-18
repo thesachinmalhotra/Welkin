@@ -22,7 +22,7 @@ openmeterValues: {
       postgres: {
         // References the composed Postgres instance (platform/economic/postgres.cue)
         // Service name is set via helmValues.fullnameOverride: "postgres"
-        url: "postgres://application:application@postgres:5432/application?sslmode=disable"
+        url: "postgres://\(runtime.postgres.username):\(runtime.postgres.password)@postgres:5432/\(runtime.postgres.database)?sslmode=disable"
       }
       meters: [
       {

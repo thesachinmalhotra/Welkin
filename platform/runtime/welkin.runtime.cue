@@ -11,7 +11,14 @@ runtime: {
   }
 
   openmeter: {
-    url: "http://openmeter-api"
+    url: *"http://openmeter-api" | string @timoni(runtime:string:OPENMETER_URL)
+  }
+
+  postgres: {
+    username:       *"application" | string @timoni(runtime:string:POSTGRES_USERNAME)
+    password:       *"application" | string @timoni(runtime:string:POSTGRES_PASSWORD)
+    database:       *"application" | string @timoni(runtime:string:POSTGRES_DATABASE)
+    postgresPassword: *"application" | string @timoni(runtime:string:POSTGRES_ADMIN_PASSWORD)
   }
 
   collector: {
@@ -30,7 +37,7 @@ runtime: {
     //   config: { input: { kafka: { addresses: ["..."] } } }
     config:     {}
     configFile: ""
-    preset:     "kubernetes-pod-exec-time"
+    preset:     *"kubernetes-pod-exec-time" | string @timoni(runtime:string:COLLECTOR_PRESET)
 
     // OpenMeter (native output)
     // openmeter.url and openmeter.token are set at top-level runtime.openmeter
@@ -114,9 +121,11 @@ runtime: {
   archive: {
     endpoint:       *     "http://minio.welkin-system.svc.cluster.local:9000" | string
     bucket:         string @timoni(runtime:string:ARCHIVE_S3_BUCKET)
-    region:         "us-east-1"
-    forcePathStyle: true
-    batchCount:     250
-    batchPeriod:    "15s"
+    region:         *"us-east-1" | string
+    forcePathStyle: *true | bool
+    batchCount:     *250 | int
+    batchPeriod:    *"15s" | string
+    accessKeyId:     *"minio" | string @timoni(runtime:string:ARCHIVE_S3_ACCESS_KEY_ID)
+    secretAccessKey: *"minio123" | string @timoni(runtime:string:ARCHIVE_S3_SECRET_ACCESS_KEY)
   }
 }

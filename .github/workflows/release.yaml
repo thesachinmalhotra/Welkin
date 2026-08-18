@@ -30,19 +30,11 @@ jobs:
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | timoni registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-      - name: Build artifact
-        run: |
-          VERSION="${GITHUB_REF_NAME}"
-          timoni artifact build \
-            -f dist/oci \
-            -t "${VERSION}" \
-            -o welkin-${VERSION}.oci.tar
-
       - name: Push artifact
         run: |
           VERSION="${GITHUB_REF_NAME}"
           DIGEST=$(timoni artifact push oci://${{ env.REGISTRY }}/${{ env.IMAGE }} \
-            -f welkin-${VERSION}.oci.tar \
+            -f dist/oci \
             --resolve-symlinks \
             --tag="${VERSION}" \
             --tag=latest \
@@ -70,3 +62,5 @@ jobs:
             -f /tmp/verify/postgres.cue \
             -f /tmp/verify/minio.cue \
             --runtime-from-env
+        env:
+          OPENMETER_TOKEN: "verify"

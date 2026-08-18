@@ -19,10 +19,10 @@ postgresValues: {
       tag:        "17.5.0-debian-12-r12"
     }
     auth: {
-      username:             "application"
-      password:             "application"
-      postgresPassword:     "application"
-      database:             "application"
+      username:             runtime.postgres.username
+      password:             runtime.postgres.password
+      postgresPassword:     runtime.postgres.postgresPassword
+      database:             runtime.postgres.database
       enablePostgresUser:   false
     }
     primary: persistence: enabled: false

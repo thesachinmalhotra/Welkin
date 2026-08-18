@@ -69,19 +69,15 @@ jobs:
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | timoni registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
 
-      - name: Build OCI artifact
-        run: |
-          VERSION="${GITHUB_SHA:0:8}"
-          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
-          timoni artifact build -f dist/oci -t "${VERSION}" -o "welkin-${VERSION}.oci.tar"
-
       - name: Create kind cluster
         run: kind create cluster --name "${{ env.CLUSTER_NAME }}"
 
       - name: Push OCI artifact once and capture immutable digest
         run: |
+          VERSION="${GITHUB_SHA:0:8}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
           DIGEST=$(timoni artifact push "oci://${{ env.REGISTRY }}/${{ env.IMAGE }}" \
-            -f "welkin-${VERSION}.oci.tar" \
+            -f dist/oci \
             --resolve-symlinks \
             --tag="${VERSION}" \
             --annotation="org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \

@@ -5,10 +5,10 @@ How a Welkin release flows from Timoni to a running cluster via Flux.
 ## Architecture
 
 ```
-timoni artifact build -f release -t v1.0.0
+dist/oci/  (symlinks -> canonical platform CUE)
         │
         ▼
-timoni artifact push oci://ghcr.io/<org>/welkin:v1.0.0
+timoni artifact push oci://ghcr.io/<org>/welkin:v1.0.0  --resolve-symlinks
         │
         ▼
   OCI artifact in registry (immutable digest)
@@ -34,7 +34,11 @@ dist/oci/
   minio.cue            → platform/archive/minio.cue
 ```
 
-The `release.yaml` workflow builds and pushes this directory as an OCI artifact on every `v*` tag.
+The `release.yaml` workflow pushes this directory as an OCI artifact on every `v*` tag.
+Because `dist/oci/` is made of symlinks, the workflow uses `timoni artifact push -f dist/oci --resolve-symlinks`
+so the symlink targets are packaged as regular files. (`timoni artifact build` does **not**
+resolve symlinks and would produce an empty artifact layer — only `push --resolve-symlinks` does.)
+The built OCI content (6 CUE files) is byte-identical to the resolved platform files.
 
 ## Consuming from Flux
 
