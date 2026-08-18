@@ -22,38 +22,71 @@ jobs:
         run: |
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
+      - name: Deploy mock OpenMeter
+        run: |
+          kubectl create namespace welkin-system || true
+          cat <<'EOF' | kubectl apply -n welkin-system -f -
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: mock-openmeter
+            labels:
+              app: mock-openmeter
+          spec:
+            containers:
+            - name: mock
+              image: python:3.12-slim
+              command: ["python3", "-c", "import http.server,json,sys; class H(http.server.BaseHTTPRequestHandler):\n  def do_POST(self):\n    l=int(self.headers.get('Content-Length',0)); b=self.rfile.read(l)\n    print('RECEIVED:',b.decode()); sys.stdout.flush(); self.send_response(200); self.send_header('Content-Type','application/json'); self.end_headers(); self.wfile.write(b)\n  def log_message(self,*a):pass\n http.server.HTTPServer(('0.0.0.0',8086),H).serve_forever()"]
+              ports:
+              - containerPort: 8086
+          EOF
+          kubectl wait --for=condition=ready pod -l app=mock-openmeter -n welkin-system --timeout=60s
+
       - name: Deploy collector
         run: |
           helm upgrade --install openmeter-collector \
             oci://ghcr.io/openmeterio/helm-charts/benthos-collector \
             --version 1.0.0-beta.232 \
-            --namespace welkin-system --create-namespace \
+            --namespace welkin-system \
             --set fullnameOverride=openmeter-collector \
             --set config.input.http.enabled=true \
-            --set openmeter.url="http://openmeter-api" \
-            --set openmeter.token="cert-test-token"
+            --set openmeter.url="http://mock-openmeter.welkin-system:8086" \
+            --set openmeter.token="test-token" \
+            --wait --timeout 120s
 
       - name: Wait for collector
         run: |
           kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=openmeter-collector -n welkin-system --timeout=120s
+          kubectl get pods -n welkin-system
 
-      - name: Send test event
+      - name: Send test event to collector
         run: |
-          curl -X POST http://localhost:4195/events \
+          kubectl port-forward svc/openmeter-collector 4195:4195 -n welkin-system &
+          sleep 3
+          curl -s -X POST http://localhost:4195/events \
             -H "Content-Type: application/json" \
-            -d '{"specversion":"e2e","id":"e2e-001","source":"e2e-test","type":"data","data":{"key":"value"}}'
+            -d '{"specversion":"e2e","id":"e2e-001","source":"e2e-test","type":"data","data":{"cpuSeconds":1.23}}'
 
-      - name: Verify event at OpenMeter
+      - name: Verify event at mock OpenMeter
         run: |
-          curl -s -H "Authorization: Bearer cert-test-token" \
-            "http://openmeter-api/api/v1/events?filter=source=e2e-test" | jq .
+          MOCK_POD=$(kubectl get pod -l app=mock-openmeter -n welkin-system -o jsonpath='{.items[0].metadata.name}')
+          LOGS=$(kubectl logs "$MOCK_POD" -n welkin-system 2>&1)
+          echo "Mock OpenMeter logs:"
+          echo "$LOGS"
+          if echo "$LOGS" | grep -q "e2e-001"; then
+            echo "PASS: event e2e-001 reached mock OpenMeter"
+          else
+            echo "FAIL: event e2e-001 not found in mock OpenMeter logs"
+            exit 1
+          fi
 
       - name: Assert event identity
         run: |
-          RECEIVED_ID=$(curl -s -H "Authorization: Bearer cert-test-token" \
-            "http://openmeter-api/api/v1/events?filter=source=e2e-test" | jq -r '.id // empty')
-          if [ "$RECEIVED_ID" != "e2e-001" ]; then
-            echo "FAIL: sent=e2e-001 received=$RECEIVED_ID"
+          MOCK_POD=$(kubectl get pod -l app=mock-openmeter -n welkin-system -o jsonpath='{.items[0].metadata.name}')
+          LOGS=$(kubectl logs "$MOCK_POD" -n welkin-system 2>&1)
+          if echo "$LOGS" | grep -q '"cpuSeconds": 1.23'; then
+            echo "PASS: data field preserved"
+          else
+            echo "FAIL: data field corrupted or missing"
             exit 1
           fi
-          echo "PASS: sent=e2e-001 received=$RECEIVED_ID"
