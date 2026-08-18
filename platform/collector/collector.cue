@@ -26,13 +26,11 @@ collectorValues: {
     }
 
     env: {
-      SCRAPE_NAMESPACE: runtime.collector.scrapeNamespace
-      SCRAPE_INTERVAL:  runtime.collector.scrapeInterval
-      BATCH_SIZE:       runtime.collector.batchSize
-      BATCH_PERIOD:     runtime.collector.batchPeriod
-      DEBUG:            runtime.collector.debug
-      LOG_LEVEL:        runtime.collector.logLevel
-      LOG_FORMAT:       runtime.collector.logFormat
+      BATCH_SIZE:   runtime.collector.batchSize
+      BATCH_PERIOD: runtime.collector.batchPeriod
+      DEBUG:        runtime.collector.debug
+      LOG_LEVEL:    runtime.collector.logLevel
+      LOG_FORMAT:   runtime.collector.logFormat
     }
   }
 }

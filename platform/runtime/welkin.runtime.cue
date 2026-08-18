@@ -15,7 +15,8 @@ runtime: {
   }
 
   collector: {
-    preset:          "kubernetes-pod-exec-time"
+    // preset selects one of the 2 upstream presets (http-server, kubernetes-pod-exec-time).
+    preset: "kubernetes-pod-exec-time"
     scrapeNamespace: ""
     scrapeInterval:  "15s"
     batchSize:       "100"
