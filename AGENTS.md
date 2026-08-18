@@ -6,11 +6,15 @@ Welkin is a composition-first, cloud-native usage substrate for usage-based syst
 
 Welkin is infrastructure, not a business billing product and not a data lake. It composes proven upstream primitives into one coherent, distributable platform.
 
+Welkin does nothing at runtime. It is dependent on upstream components — that is why it is called a **substrate**, not a platform. Every runtime behavior comes from an upstream system. Welkin only configures the composition.
+
 The governing philosophy is:
 
 **Compose, don't build.**
 
 Prefer upstream-native components, open standards, and clean composition over custom infrastructure.
+
+When native upstream and existing implementation conflict, **choose native upstream every time.** Delete, replace, make extinct — no attachment to existing code.
 
 ---
 
@@ -87,6 +91,39 @@ Vanilla Redpanda Connect is NOT Welkin's production runtime.
 `rpk connect test` is test tooling used to exercise and validate compatible collector mappings/processors. It is not the production Collector and must never be treated as a replacement for OpenMeter Collector.
 
 When working on collector behavior, preserve this distinction.
+
+### Collector Architecture
+
+The OpenMeter Collector is a Redpanda Connect distribution with a native `openmeter` output. Welkin configures it — it does not extend it.
+
+```text
+Input (Redpanda Connect connector)
+    │
+    ▼
+Pipeline (Bloblang mapping → canonical CloudEvent)
+    │
+    ▼
+Output (native openmeter → OpenMeter API)
+```
+
+**65+ upstream inputs available** — any Redpanda Connect connector can be a Welkin event source:
+
+| Category | Examples |
+|----------|----------|
+| Databases | PostgreSQL CDC, MySQL CDC, MongoDB CDC, CockroachDB CDC, Oracle CDC, SQL Server CDC |
+| Message Queues | Kafka, NATS, MQTT, Pulsar, RabbitMQ, Redis Streams |
+| Cloud | AWS S3/Kinesis/SQS, Azure Blob/Queue, GCP PubSub/BigQuery |
+| Network | HTTP Server, WebSocket, OpenTelemetry gRPC/HTTP |
+| Local | File, CSV, Parquet |
+| Streaming | Redpanda, Schema Registry |
+
+**2 upstream presets ship in the Helm chart:**
+- `http-server` — generic HTTP ingestion with event buffering
+- `kubernetes-pod-exec-time` — Kubernetes pod resource metering
+
+Additional sources use the chart's `config` field with standard Redpanda Connect configuration. The native `openmeter` output is built into every configuration — it is not something Welkin adds.
+
+The collector's `preset` field selects an upstream preset. The `openmeter.url` and `openmeter.token` fields configure the native output. Welkin passes these via CUE and environment variables. No custom Benthos config. No processor_resources. No output_resources.
 
 ---
 
