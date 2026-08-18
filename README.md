@@ -7,8 +7,7 @@ Welkin v1 has one governing rule: producer diversity is allowed only before cano
 ## What this repo gives you
 
 - `spec/` for canonical event and archive contract definitions
-- `collector/` for the OpenMeter Collector substrate: canonical validation, fan-out resources, archive handling, tests, and optional source presets
-- `platform/` for the primary install surface and runtime contract (plane-based)
+- `platform/` for the primary install surface and runtime contract (plane-based, including the OpenMeter Collector via `platform/collector/`)
 - `dist/` for OCI-based GitOps handoff after publishing release artifacts
 - `.github/workflows/` for validation and certification workflows
 - `cert/` for the architectural guarantees, scenario catalog, and evidence model

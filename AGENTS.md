@@ -335,7 +335,7 @@ Enforced by `.commitlintrc.json` and `.pre-commit-config.yaml`.
 
 ### Before pushing
 
-1. Run relevant local validation (CUE vet, rpk connect test, timoni bundle vet, Python compile check).
+1. Run relevant local validation (CUE vet, timoni bundle vet, Python compile check).
 2. No CI run until local checks are green.
 3. Follow the PR template (`.github/PULL_REQUEST_TEMPLATE.md`).
 
@@ -350,7 +350,6 @@ Enforced by `.commitlintrc.json` and `.pre-commit-config.yaml`.
 | `platform/economic/` | Economic plane components (OpenMeter, Postgres) |
 | `platform/archive/` | Archive plane components (MinIO) |
 | `platform/collector/` | Collector component values |
-| `collector/` | Collector test fixtures, Bloblang presets, rpk tests |
 | `cert/` | Certification catalog, scenarios, and evidence model |
 | `cert/scripts/` | Certification harness scripts |
 | `dist/flux/` | Flux OCI consumption resources |

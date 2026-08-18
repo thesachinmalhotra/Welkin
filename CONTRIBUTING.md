@@ -63,7 +63,6 @@ Before pushing, run the checks that apply to your changes:
 | Change type | Run this |
 |---|---|
 | CUE files | `cue vet` on the relevant schemas |
-| Benthos config | `rpk connect test collector/tests/*.yaml` |
 | Timoni bundle | `timoni bundle vet -f platform/bundles/welkin.bundle.cue -f platform/runtime/welkin.runtime.cue -f platform/collector/collector.cue -f platform/economic/openmeter.cue -f platform/economic/postgres.cue -f platform/archive/minio.cue --runtime-from-env` |
 | Python scripts | `python3 -m py_compile cert/scripts/*.py` |
 | Commit messages | `pre-commit run commitizen --hook-stage commit-msg` |
@@ -81,7 +80,6 @@ Before pushing, run the checks that apply to your changes:
 | `platform/economic/` | Economic plane components (OpenMeter, Postgres) |
 | `platform/archive/` | Archive plane components (MinIO) |
 | `platform/collector/` | Collector component values |
-| `collector/` | Collector test fixtures, Bloblang presets, rpk tests |
 | `cert/` | Certification catalog and evidence model |
 | `cert/scripts/` | Certification harness scripts |
 | `.github/workflows/` | CI workflows |
