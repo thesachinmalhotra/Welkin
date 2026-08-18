@@ -12,7 +12,15 @@ collectorValues: {
   }
   helmValues: {
     fullnameOverride: "openmeter-collector"
-    preset:           runtime.collector.preset
+
+    // Upstream chart config selection, in upstream precedence order:
+    //   config        (highest)  arbitrary Redpanda Connect config -> any of the 65+ connectors
+    //   configFile    (mid)      mount an existing Redpanda Connect config file
+    //   preset        (fallback) one of the 2 bundled presets
+    // Values are ported 1:1 from the upstream benthos-collector chart.
+    config:     runtime.collector.config
+    configFile: runtime.collector.configFile
+    preset:     runtime.collector.preset
 
     openmeter: {
       url:   runtime.openmeter.url

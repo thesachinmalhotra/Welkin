@@ -17,6 +17,13 @@ runtime: {
   collector: {
     // preset selects one of the 2 upstream presets (http-server, kubernetes-pod-exec-time).
     preset: "kubernetes-pod-exec-time"
+
+    // config: arbitrary Redpanda Connect config to use any of the 65+ connectors, e.g.
+    //   config: { input: { kafka: { addresses: ["..."] } } }
+    // Precedence per upstream chart: config > configFile > preset.
+    config: {}
+    configFile: ""
+
     scrapeNamespace: ""
     scrapeInterval:  "15s"
     batchSize:       "100"
