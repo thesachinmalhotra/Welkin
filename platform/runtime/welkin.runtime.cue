@@ -109,21 +109,6 @@ runtime: {
 
     // CA certs
     caRootCertificates: {}
-
-    // Legacy env passthrough (preserved for backward compat with old collector env vars)
-    scrapeNamespace: ""
-    scrapeInterval:  "15s"
-    batchSize:       "100"
-    batchPeriod:     "1s"
-    debug:           "false"
-    serviceEnabled:  false
-    storageEnabled:  true
-    storageSize:     "1Gi"
-    bufferPath:      "/data/buffer.db"
-    logLevel:        "INFO"
-    logFormat:       "json"
-    shutdownDelay:   "5s"
-    shutdownTimeout: "20s"
   }
 
   archive: {
