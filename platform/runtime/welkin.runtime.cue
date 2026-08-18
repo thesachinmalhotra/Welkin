@@ -15,30 +15,115 @@ runtime: {
   }
 
   collector: {
-    // preset selects one of the 2 upstream presets (http-server, kubernetes-pod-exec-time).
-    preset: "kubernetes-pod-exec-time"
+    // Image
+    image: {
+      repository: "ghcr.io/openmeterio/benthos-collector"
+      pullPolicy: "IfNotPresent"
+      tag:        ""
+    }
 
+    // Replicas
+    replicaCount: 1
+
+    // Config selection (upstream precedence: config > configFile > preset)
     // config: arbitrary Redpanda Connect config to use any of the 65+ connectors, e.g.
     //   config: { input: { kafka: { addresses: ["..."] } } }
-    // Precedence per upstream chart: config > configFile > preset.
-    config: {}
+    config:     {}
     configFile: ""
+    preset:     "kubernetes-pod-exec-time"
 
+    // OpenMeter (native output)
+    // openmeter.url and openmeter.token are set at top-level runtime.openmeter
+
+    // Service
+    service: {
+      enabled:    false
+      type:       "ClusterIP"
+      port:       80
+      annotations: {}
+    }
+
+    // Auth / identity
+    imagePullSecrets: []
+    nameOverride:     ""
+    fullnameOverride: "openmeter-collector"
+
+    // ServiceAccount
+    serviceAccount: {
+      create:      true
+      automount:   true
+      annotations: {}
+      name:        ""
+    }
+
+    // RBAC
+    rbac: {
+      create: true
+    }
+
+    // LeaderElection
+    leaderElection: {
+      enabled: false
+      lease: {
+        duration:     "10s"
+        renewDeadline: "5s"
+        retryPeriod:   "2s"
+      }
+    }
+
+    // Pod metadata
+    podAnnotations: {}
+    podLabels:      {}
+
+    // Security
+    podSecurityContext: {}
+    securityContext:    {}
+
+    // Resources
+    resources: {}
+
+    // Scheduling
+    nodeSelector: {}
+    tolerations:  []
+    affinity:     {}
+
+    // Storage (PVC)
+    storage: {
+      enabled:      false
+      annotations:  {}
+      labels:       {}
+      selector:     {}
+      accessModes:  ["ReadWriteOnce"]
+      size:         "1Gi"
+      mountPath:    "/data"
+      storageClass: ""
+    }
+
+    // Volumes / volumeMounts (enables configFile)
+    volumes:      []
+    volumeMounts: []
+
+    // Env / envFrom
+    env:      {}
+    envFrom:  []
+
+    // CA certs
+    caRootCertificates: {}
+
+    // Legacy env passthrough (preserved for backward compat with old collector env vars)
     scrapeNamespace: ""
     scrapeInterval:  "15s"
     batchSize:       "100"
     batchPeriod:     "1s"
     debug:           "false"
-
-    serviceEnabled: false
-    storageEnabled: true
-    storageSize:    "1Gi"
-    bufferPath:     "/data/buffer.db"
-
-    logLevel:       "INFO"
-    logFormat:      "json"
-    shutdownDelay:  "5s"
-    shutdownTimeout:"20s"
+    serviceEnabled:  false
+    storageEnabled:  true
+    storageSize:     "1Gi"
+    bufferPath:      "/data/buffer.db"
+    logLevel:        "INFO"
+    logFormat:       "json"
+    shutdownDelay:   "5s"
+    shutdownTimeout: "20s"
   }
 
   archive: {

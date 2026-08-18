@@ -11,34 +11,60 @@ collectorValues: {
     createNamespace: true
   }
   helmValues: {
-    fullnameOverride: "openmeter-collector"
+    // Image
+    image: runtime.collector.image
 
-    // Upstream chart config selection, in upstream precedence order:
-    //   config        (highest)  arbitrary Redpanda Connect config -> any of the 65+ connectors
-    //   configFile    (mid)      mount an existing Redpanda Connect config file
-    //   preset        (fallback) one of the 2 bundled presets
-    // Values are ported 1:1 from the upstream benthos-collector chart.
-    config:     runtime.collector.config
-    configFile: runtime.collector.configFile
-    preset:     runtime.collector.preset
+    // Replicas
+    replicaCount: runtime.collector.replicaCount
 
+    // OpenMeter (native output)
     openmeter: {
       url:   runtime.openmeter.url
       token: string @timoni(runtime:string:OPENMETER_TOKEN)
     }
 
-    service: enabled: runtime.collector.serviceEnabled
-    storage: {
-      enabled: runtime.collector.storageEnabled
-      size:    runtime.collector.storageSize
-    }
+    // Config selection (upstream precedence: config > configFile > preset)
+    config:     runtime.collector.config
+    configFile: runtime.collector.configFile
+    preset:     runtime.collector.preset
 
-    env: {
-      BATCH_SIZE:   runtime.collector.batchSize
-      BATCH_PERIOD: runtime.collector.batchPeriod
-      DEBUG:        runtime.collector.debug
-      LOG_LEVEL:    runtime.collector.logLevel
-      LOG_FORMAT:   runtime.collector.logFormat
-    }
+    // Service
+    service: runtime.collector.service
+
+    // Auth / identity
+    imagePullSecrets: runtime.collector.imagePullSecrets
+    nameOverride:     runtime.collector.nameOverride
+    fullnameOverride: runtime.collector.fullnameOverride
+
+    // ServiceAccount / RBAC / LeaderElection
+    serviceAccount: runtime.collector.serviceAccount
+    rbac:           runtime.collector.rbac
+    leaderElection: runtime.collector.leaderElection
+
+    // Pod / container metadata & security
+    podAnnotations:  runtime.collector.podAnnotations
+    podLabels:       runtime.collector.podLabels
+    podSecurityContext:  runtime.collector.podSecurityContext
+    securityContext:     runtime.collector.securityContext
+
+    // Resources / scheduling
+    resources:      runtime.collector.resources
+    nodeSelector:   runtime.collector.nodeSelector
+    tolerations:    runtime.collector.tolerations
+    affinity:       runtime.collector.affinity
+
+    // Storage (PVC)
+    storage: runtime.collector.storage
+
+    // Volumes / volumeMounts (enables configFile)
+    volumes:      runtime.collector.volumes
+    volumeMounts: runtime.collector.volumeMounts
+
+    // Env / envFrom
+    env:      runtime.collector.env
+    envFrom:  runtime.collector.envFrom
+
+    // CA certs
+    caRootCertificates: runtime.collector.caRootCertificates
   }
 }
