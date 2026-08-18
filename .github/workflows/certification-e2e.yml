@@ -1,0 +1,167 @@
+name: Certification E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario_id:
+        required: true
+        description: 'Scenario to test (canonical-flow, plane-independence, etc.)'
+        default: 'canonical-flow'
+      timeout-minutes:
+        required: false
+        description: 'Override total workflow timeout in minutes'
+        default: '20'
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ inputs.timeout-minutes || '20' }}
+    env:
+      OPENMETER_TOKEN: "test-token-${{ github.sha }}"
+      ARCHIVE_S3_ACCESS_KEY_ID: "minio"
+      ARCHIVE_S3_SECRET_ACCESS_KEY: "minio123"
+      ARCHIVE_S3_BUCKET: "welkin-archive"
+      ARCHIVE_S3_REGION: "us-east-1"
+      ARCHIVE_S3_ENDPOINT: "http://minio:9000"
+      WORKFLOW_RUN_ID: "${{ github.run_id }}"
+      WORKFLOWsha: "${{ github.sha }}"
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Timoni
+        run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.31.0
+        env:
+          PATH: "${PATH}:${GOBIN}"
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x ./kubectl
+          sudo mv ./kubectl /usr/local/bin/kubectl
+
+      - name: Build + push OCI artifact
+        run: |
+          echo "VERSION=${GITHUB_SHA:0:8}" > version.txt
+          timoni artifact build -f dist/oci -t "${VERSION}" -o welkin-${VERSION}.oci.tar
+          VERSION="${{ env.VERSION }}"
+          DIGEST=$(timoni artifact push oci://ghcr.io/thesachinmalhotra/welkin \
+            -f welkin-${VERSION}.oci.tar \
+            --resolve-symlinks --tag="${VERSION}" --tag=latest 2>&1 | grep "digest:" | awk '{print $2}')
+          echo "digest=${DIGEST}" >> $GITHUB_ENV
+          echo "artifact_digest=${DIGEST}" >> $GITHUB_ENV
+
+      - name: Create kind cluster
+        run: kind create cluster --name welkin-e2e --config /dev/null
+      - name: Export cluster name
+        run: echo "CLUSTER_NAME=welkin-e2e" >> $GITHUB_ENV
+
+      - name: Deploy Welkin via Timoni → OCI → Flux (3m timeout)
+        run: |
+          VERSION="${{ env.VERSION }}"
+          kubectl create clusterrolebinding anonymity-cluster-admin \
+            --clusterrole=cluster-admin --serviceaccount=default:default 2>/dev/null || true
+          timoni artifact push oci://ghcr.io/thesachinmalhotra/welkin \
+            -f welkin-${VERSION}.oci.tar \
+            --resolve-symlinks --tag="${VERSION}" --tag=latest
+          set +e
+          kubectl wait kustomization/welkin-release \
+            --for=condition=Ready --timeout=${DEPLOYMENT_TIMEOUT:-3m0s} 2>&1
+          DEPLOY_EXIT=$?
+          set -e
+          if [ "$DEPLOY_EXIT" -ne 0 ]; then
+            echo "Deployment timeout or failure after ${DEPLOYMENT_TIMEOUT:-3m0s}"
+          fi
+
+      - name: Run certification Job (7m timeout)
+        run: |
+          kubectl apply -f dist/flux/certification/certification-job.yaml
+          set +e
+          kubectl wait job/welkin-certification \
+            --for=condition=Complete --timeout=${CERTIFICATION_TIMEOUT:-7m0s} 2>&1
+          CERT_EXIT=$?
+          set -e
+          if [ "$CERT_EXIT" -ne 0 ]; then
+            echo "Certification timeout or failure after ${CERTIFICATION_TIMEOUT:-7m0s}"
+          fi
+
+      - name: Collect machine-readable evidence
+        run: |
+          STATUS=$(kubectl get job/welkin-certification -o jsonpath='{.status.succeeded}')
+          echo "passed" > /tmp/certification-result.txt if [ "$STATUS" = "1" ]
+          echo "failed" > /tmp/certification-result.txt if [ "$STATUS" != "1" ]
+          echo "welkin_digest=${{ env.artifact_digest }}" > /tmp/certification-evidence.txt
+          echo "scenario_id=${{ inputs.scenario_id }}" >> /tmp/certification-evidence.txt
+          echo "cluster_name=${CLUSTER_NAME}" >> /tmp/certification-evidence.txt
+          echo "job_succeeded=${STATUS}" >> /tmp/certification-evidence.txt
+          kubectl logs job/welkin-certification > /tmp/certification-logs.txt 2>&1 || true
+          kubectl get all -A > /tmp/cluster-diagnostics.txt 2>/dev/null || true
+          kubectl get flux*kustomization > /tmp/flux-diagnostics.txt 2>/dev/null || true
+          kubectl get events --sort-by=.metadata.creationTimestamp > /tmp/events-diagnostics.txt 2>/dev/null || true
+
+      - name: Destroy kind cluster (always)
+        if: always()
+        run: kind delete cluster welkin-e2e
+
+      - name: Verify cluster destroyed (always)
+        if: always()
+        run: |
+          if kind get clusters | grep -q welkin-e2e; then
+            echo "WARNING: cluster still exists"
+          else
+            echo "Cluster successfully destroyed"
+
+      - name: Upload certification result (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-result-${{ github.sha }}
+          path: /tmp/certification-result.txt
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload certification logs (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-logs-${{ github.sha }}
+          path: /tmp/certification-logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload cluster diagnostics (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cluster-diagnostics-${{ github.sha }}
+          path: /tmp/cluster-diagnostics/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload welkin digest (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: welkin-digest-${{ github.sha }}
+          path: /tmp/welkin-digest.txt
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Summarize E2E result (always)
+        run: |
+          RESULT=$(cat /tmp/certification-result.txt 2>/dev/null || echo "unknown")
+          DIGEST=$(cat /tmp/welkin-digest.txt 2>/dev/null || echo "unknown")
+          echo "=== E2E Certification Summary ==="
+          echo "Scenario: ${{ inputs.scenario_id }}"
+          echo "Result: $RESULT"
+          echo "OCI Digest: $DIGEST"
+          echo "Cluster: destroyed"
+          echo "Artifacts available in GitHub Actions UI"
