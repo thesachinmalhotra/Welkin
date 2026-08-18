@@ -1,0 +1,57 @@
+name: collector-e2e
+
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENMETER_TOKEN: "cert-test-token"
+      ARCHIVE_S3_ACCESS_KEY_ID: "minio"
+      ARCHIVE_S3_SECRET_ACCESS_KEY: "minio123"
+      ARCHIVE_S3_BUCKET: "welkin-archive"
+      ARCHIVE_S3_REGION: "us-east-1"
+      ARCHIVE_S3_ENDPOINT: "http://minio.welkin-system.svc.cluster.local:9000"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind create cluster
+
+      - name: Deploy collector
+        run: |
+          OPENMETER_TOKEN=${OPENMETER_TOKEN} \
+          ARCHIVE_S3_BUCKET=${ARCHIVE_S3_BUCKET} \
+          timoni bundle apply \
+            -f platform/bundles/welkin.bundle.cue \
+            -f platform/runtime/welkin.runtime.cue \
+            -f platform/collector/collector.cue \
+            --runtime-from-env
+
+      - name: Send test event
+        run: |
+          curl -X POST http://localhost:4195/events \
+            -H "Content-Type: application/json" \
+            -d '{"specversion":"e2e","id":"e2e-001","source":"e2e-test","type":"data","data":{"key":"value"}}'
+
+      - name: Verify event at OpenMeter
+        run: |
+          curl -s -H "Authorization: Bearer ${OPENMETER_TOKEN}" \
+            "http://openmeter-api/api/v1/events?filter=source=e2e-test" | jq .
+
+      - name: Assert event identity
+        run: |
+          RECEIVED_ID=$(curl -s -H "Authorization: Bearer ${OPENMETER_TOKEN}" \
+            "http://openmeter-api/api/v1/events?filter=source=e2e-test" | jq -r '.id // empty')
+          if [ "$RECEIVED_ID" != "e2e-001" ]; then
+            echo "FAIL: sent=e2e-001 received=$RECEIVED_ID"
+            exit 1
+          fi
+          echo "PASS: sent=e2e-001 received=$RECEIVED_ID"

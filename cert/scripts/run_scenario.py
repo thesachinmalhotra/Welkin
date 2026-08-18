@@ -337,23 +337,6 @@ def canonical_flow(artifact_dir: Path) -> tuple[str, list[str]]:
     try:
         notes.extend(gate1_contract_matrix(artifact_dir))
         run_command(
-            [
-                str(CUE_BIN),
-                "vet",
-                "-d",
-                "#CloudEvent",
-                "./collector/fixtures/canonical-event.json",
-                "./spec/schema/cloudevent.cue",
-            ],
-            artifact_dir,
-            "cue-vet.log",
-        )
-        run_command(
-            ["rpk", "connect", "test", "./collector/tests/archive_partition_test.yaml"],
-            artifact_dir,
-            "rpk-connect-test.log",
-        )
-        run_command(
             ["kind", "create", "cluster", "--name", "welkin-certification"],
             artifact_dir,
             "kind-create.log",
@@ -442,18 +425,6 @@ def plane_independence(artifact_dir: Path) -> tuple[str, list[str]]:
     )
 
     try:
-        run_command(
-            [
-                str(CUE_BIN),
-                "vet",
-                "-d",
-                "#CloudEvent",
-                "./collector/fixtures/canonical-event.json",
-                "./spec/schema/cloudevent.cue",
-            ],
-            artifact_dir,
-            "cue-vet.log",
-        )
         run_command(
             ["kind", "create", "cluster", "--name", "welkin-certification"],
             artifact_dir,

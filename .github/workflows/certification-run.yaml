@@ -34,13 +34,6 @@ jobs:
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
 
-      - name: Install rpk
-        run: |
-          curl -LO https://github.com/redpanda-data/redpanda/releases/latest/download/rpk-linux-amd64.zip
-          unzip rpk-linux-amd64.zip -d /tmp/rpk
-          sudo mv /tmp/rpk/rpk /usr/local/bin/rpk
-          rm -rf rpk-linux-amd64.zip /tmp/rpk
-
       - name: Export catalog
         run: |
           cue export -e 'catalog' cert/catalog.cue -o cert/catalog.json

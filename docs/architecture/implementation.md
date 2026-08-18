@@ -3,26 +3,21 @@
 ## Repository responsibilities
 
 - `spec/` holds the canonical CloudEvent and archive contracts.
-- `collector/` holds the OpenMeter Collector substrate: canonical validation, fan-out resources, archive handling, source presets, fixtures, and tests.
 - `platform/` holds the deployment bundle and runtime contract (plane-based: economic, archive, collector).
 - `dist/` holds the GitOps-facing handoff once Welkin release artifacts are published.
 - `.github/workflows/` holds remote validation and smoke deployment automation.
 
 ## Current first-class path
 
-The first implemented path is source-agnostic at the Canonical CloudEvent boundary.
+Welkin composes the **OpenMeter Collector** (the upstream Redpanda Connect distribution) as the sole production collector. Welkin does not add custom Benthos/Bloblang resources, processor_resources, or output_resources.
 
-Key pieces:
+The collector uses the upstream `benthos-collector` Helm chart with its native `openmeter` output. Welkin configures the chart via `platform/collector/collector.cue`:
 
-- `collector/resources/processors/validate_cloudevent.yaml`
-- `collector/resources/processors/archive_partition.blobl`
-- `collector/tests/archive_partition_test.yaml`
+- `preset` selects an upstream preset (e.g. `kubernetes-pod-exec-time`, `http-server`).
+- `openmeter.url` and `openmeter.token` configure the native output.
+- Env vars configure preset behavior.
 
-Collector config is inlined in `platform/collector/collector.cue` (the sole deployment source).
-
-The Canonical CloudEvent contract is validated with CUE against fixtures in `collector/fixtures/` and `spec/`.
-
-Kubernetes support is kept under `collector/presets/kubernetes/` as an OpenMeter Collector preset example, not as Welkin's core event model.
+The Canonical CloudEvent contract is defined by CUE in `spec/schema/cloudevent.cue` and validated against fixtures in `cert/fixtures/gate1/`.
 
 ## Delivery posture
 
