@@ -4,7 +4,7 @@ postgresValues: {
   repository: url: "oci://registry-1.docker.io/bitnamicharts"
   chart: {
     name:    "postgresql"
-    version: "18.8.10"
+    version: "16.7.13"
   }
   sync: {
     targetNamespace: runtime.namespace
@@ -13,6 +13,11 @@ postgresValues: {
   }
   helmValues: {
     fullnameOverride: "postgres"
+    image: {
+      registry:   "docker.io"
+      repository: "bitnamilegacy/postgresql"
+      tag:        "17.5.0-debian-12-r12"
+    }
     auth: {
       username:             "application"
       password:             "application"
