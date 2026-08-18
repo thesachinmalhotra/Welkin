@@ -46,7 +46,7 @@ jobs:
             --version 1.0.0-beta.232 \
             --namespace welkin-system \
             --set fullnameOverride=openmeter-collector \
-            --set config.input.http.enabled=true \
+            --set preset=http-server \
             --set openmeter.url="http://mock-openmeter.welkin-system:8086" \
             --set openmeter.token="test-token"
 
