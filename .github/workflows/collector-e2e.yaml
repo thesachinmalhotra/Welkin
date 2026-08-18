@@ -7,13 +7,6 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      OPENMETER_TOKEN: "cert-test-token"
-      ARCHIVE_S3_ACCESS_KEY_ID: "minio"
-      ARCHIVE_S3_SECRET_ACCESS_KEY: "minio123"
-      ARCHIVE_S3_BUCKET: "welkin-archive"
-      ARCHIVE_S3_REGION: "us-east-1"
-      ARCHIVE_S3_ENDPOINT: "http://minio.welkin-system.svc.cluster.local:9000"
 
     steps:
       - uses: actions/checkout@v4
@@ -25,15 +18,24 @@ jobs:
           sudo mv ./kind /usr/local/bin/kind
           kind create cluster
 
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
       - name: Deploy collector
         run: |
-          OPENMETER_TOKEN=${OPENMETER_TOKEN} \
-          ARCHIVE_S3_BUCKET=${ARCHIVE_S3_BUCKET} \
-          timoni bundle apply \
-            -f platform/bundles/welkin.bundle.cue \
-            -f platform/runtime/welkin.runtime.cue \
-            -f platform/collector/collector.cue \
-            --runtime-from-env
+          helm upgrade --install openmeter-collector \
+            oci://ghcr.io/openmeterio/helm-charts/benthos-collector \
+            --version 1.0.0-beta.232 \
+            --namespace welkin-system --create-namespace \
+            --set fullnameOverride=openmeter-collector \
+            --set config.input.http.enabled=true \
+            --set openmeter.url="http://openmeter-api" \
+            --set openmeter.token="cert-test-token"
+
+      - name: Wait for collector
+        run: |
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=openmeter-collector -n welkin-system --timeout=120s
 
       - name: Send test event
         run: |
@@ -43,12 +45,12 @@ jobs:
 
       - name: Verify event at OpenMeter
         run: |
-          curl -s -H "Authorization: Bearer ${OPENMETER_TOKEN}" \
+          curl -s -H "Authorization: Bearer cert-test-token" \
             "http://openmeter-api/api/v1/events?filter=source=e2e-test" | jq .
 
       - name: Assert event identity
         run: |
-          RECEIVED_ID=$(curl -s -H "Authorization: Bearer ${OPENMETER_TOKEN}" \
+          RECEIVED_ID=$(curl -s -H "Authorization: Bearer cert-test-token" \
             "http://openmeter-api/api/v1/events?filter=source=e2e-test" | jq -r '.id // empty')
           if [ "$RECEIVED_ID" != "e2e-001" ]; then
             echo "FAIL: sent=e2e-001 received=$RECEIVED_ID"
