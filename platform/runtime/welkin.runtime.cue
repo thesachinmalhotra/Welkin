@@ -8,6 +8,7 @@ runtime: {
     fluxModuleVersion: "2.9.4-0"
     openmeterVersion:  "1.0.0-beta.232"
     collectorVersion:  "1.0.0-beta.232"
+    postgresVersion:   "16.7.13"
   }
 
   openmeter: {
@@ -23,8 +24,7 @@ runtime: {
   }
 
   collector: {
-    image:           *"ghcr.io/openmeterio/benthos-collector:v1.0.0-beta.232" | string
-    openmeterToken:  *"changeme" | string @timoni(runtime:string:OPENMETER_TOKEN)
+    image: *"ghcr.io/openmeterio/benthos-collector:v1.0.0-beta.232" | string
   }
 
   archive: {
