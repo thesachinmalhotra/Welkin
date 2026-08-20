@@ -1,7 +1,7 @@
 package main
 
 runtime: {
-  namespace: "welkin-system"
+  namespace: *"welkin-system" | string @timoni(runtime:string:WELKIN_NAMESPACE)
 
   charts: {
     fluxAioVersion:    "2.9.4-0"
