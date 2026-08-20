@@ -15,8 +15,7 @@ collectorValues: {
     image: runtime.collector.image
 
     // Replicas
-    replicaCount: runtime.collector.replicaCount
-
+    
     // OpenMeter (native output)
     openmeter: {
       url:   runtime.openmeter.url
