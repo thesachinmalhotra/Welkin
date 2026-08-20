@@ -24,7 +24,82 @@ collectorValues: {
     }
 
     // Config selection (upstream precedence: config > configFile > preset)
-    config:     runtime.collector.config
+    config: {
+      output: {
+        switch: {
+          cases: [
+            // Case 1: Economic path (OpenMeter)
+            {
+              check: ""
+              continue: true
+              output: {
+                openmeter: {
+                  url:   runtime.openmeter.url
+                  token: string @timoni(runtime:string:OPENMETER_TOKEN)
+                  batching: {
+                    count: 100
+                    period: "1s"
+                  }
+                }
+              }
+            }
+            // Case 2: Archive path — best-effort, non-blocking
+            {
+              check: ""
+              continue: true
+              output: {
+                drop_on: {
+                  error: true
+                  back_pressure: "10s"
+                  output: {
+                    aws_s3: {
+                      bucket: runtime.archive.bucket
+                      path: "events/${!timestamp_unix()}-${!uuid_v4()}.parquet"
+                      endpoint: runtime.archive.endpoint
+                      force_path_style_urls: true
+                      region: runtime.archive.region
+                      credentials: {
+                        id: runtime.archive.accessKeyId
+                        secret: runtime.archive.secretAccessKey
+                      }
+                      max_in_flight: 1
+                      batching: {
+                        count: runtime.archive.batchCount
+                        period: runtime.archive.batchPeriod
+                        processors: [
+                          {
+                            parquet_encode: {
+                              schema: [
+                                {name: "id", type: "UTF8"}
+                                {name: "specversion", type: "UTF8"}
+                                {name: "type", type: "UTF8"}
+                                {name: "source", type: "UTF8"}
+                                {name: "time", type: "TIMESTAMP"}
+                                {name: "subject", type: "UTF8"}
+                                {name: "data", type: "BYTE_ARRAY"}
+                              ]
+                              default_compression: "zstd"
+                              default_timestamp_unit: "MICROSECOND"
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            // Case 3: Debug (preserved from preset)
+            {
+              check: '"${DEBUG:false}" == "true"'
+              output: {
+                stdout: { codec: "lines" }
+              }
+            }
+          ]
+        }
+      }
+    }
     configFile: runtime.collector.configFile
     preset:     runtime.collector.preset
 
