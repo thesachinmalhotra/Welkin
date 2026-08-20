@@ -11,38 +11,31 @@ collectorValues: {
     createNamespace: true
   }
   helmValues: {
-    // Image
     image: runtime.collector.image
 
-    // Replicas
-    
-    // OpenMeter (native output)
     openmeter: {
       url:   runtime.openmeter.url
-      token: string @timoni(runtime:string:OPENMETER_TOKEN)
+      token: runtime.openmeter.token
     }
 
-    // Config selection (upstream precedence: config > configFile > preset)
     config: {
       output: {
         switch: {
           cases: [
-            // Case 1: Economic path (OpenMeter)
             {
               check: ""
               continue: true
               output: {
                 openmeter: {
                   url:   runtime.openmeter.url
-                  token: string @timoni(runtime:string:OPENMETER_TOKEN)
+                  token: runtime.openmeter.token
                   batching: {
                     count: 100
                     period: "1s"
                   }
                 }
               }
-            }
-            // Case 2: Archive path — best-effort, non-blocking
+            },
             {
               check: ""
               continue: true
@@ -87,8 +80,7 @@ collectorValues: {
                   }
                 }
               }
-            }
-            // Case 3: Debug (preserved from preset)
+            },
             {
               check: '"${DEBUG:false}" == "true"'
               output: {
@@ -99,46 +91,5 @@ collectorValues: {
         }
       }
     }
-    configFile: runtime.collector.configFile
-    preset:     runtime.collector.preset
-
-    // Service
-    service: runtime.collector.service
-
-    // Auth / identity
-    imagePullSecrets: runtime.collector.imagePullSecrets
-    nameOverride:     runtime.collector.nameOverride
-    fullnameOverride: runtime.collector.fullnameOverride
-
-    // ServiceAccount / RBAC / LeaderElection
-    serviceAccount: runtime.collector.serviceAccount
-    rbac:           runtime.collector.rbac
-    leaderElection: runtime.collector.leaderElection
-
-    // Pod / container metadata & security
-    podAnnotations:  runtime.collector.podAnnotations
-    podLabels:       runtime.collector.podLabels
-    podSecurityContext:  runtime.collector.podSecurityContext
-    securityContext:     runtime.collector.securityContext
-
-    // Resources / scheduling
-    resources:      runtime.collector.resources
-    nodeSelector:   runtime.collector.nodeSelector
-    tolerations:    runtime.collector.tolerations
-    affinity:       runtime.collector.affinity
-
-    // Storage (PVC)
-    storage: runtime.collector.storage
-
-    // Volumes / volumeMounts (enables configFile)
-    volumes:      runtime.collector.volumes
-    volumeMounts: runtime.collector.volumeMounts
-
-    // Env / envFrom
-    env:      runtime.collector.env
-    envFrom:  runtime.collector.envFrom
-
-    // CA certs
-    caRootCertificates: runtime.collector.caRootCertificates
   }
 }
