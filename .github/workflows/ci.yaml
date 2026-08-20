@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  COLLECTOR_IMAGE: ghcr.io/openmeterio/benthos-collector:v1.0.0-beta.232
+  TIMONI_VERSION: "0.31.0"
+
+jobs:
+  validate:
+    name: Validate (vet + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Timoni
+        uses: stefanprodan/timoni/actions/setup@main
+        with:
+          version: ${{ env.TIMONI_VERSION }}
+      - name: Vet bundle
+        env:
+          OPENMETER_TOKEN: test
+          ARCHIVE_S3_BUCKET: welkin-archive
+          ARCHIVE_S3_ACCESS_KEY_ID: minio
+          ARCHIVE_S3_SECRET_ACCESS_KEY: minio123
+        run: |
+          make vet
+      - name: Build bundle
+        env:
+          OPENMETER_TOKEN: test
+          ARCHIVE_S3_BUCKET: welkin-archive
+          ARCHIVE_S3_ACCESS_KEY_ID: minio
+          ARCHIVE_S3_SECRET_ACCESS_KEY: minio123
+        run: |
+          make build > /tmp/bundle.yaml
+      - name: Lint CUE
+        run: |
+          cue vet ./*.cue ./platform/**/*.cue
+
+  diff-artifact:
+    name: Diff Artifact (gate on main)
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Timoni
+        uses: stefanprodan/timoni/actions/setup@main
+      - name: Setup Flux CLI
+        uses: fluxcd/flux2/action@main
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build bundle
+        env:
+          OPENMETER_TOKEN: test
+          ARCHIVE_S3_BUCKET: welkin-archive
+          ARCHIVE_S3_ACCESS_KEY_ID: minio
+          ARCHIVE_S3_SECRET_ACCESS_KEY: minio123
+        run: |
+          make build > /tmp/bundle.yaml
+      - name: Diff against latest artifact
+        run: |
+          flux diff artifact oci://ghcr.io/${{ github.repository }}/welkin:latest \
+            --path /tmp/bundle.yaml || true

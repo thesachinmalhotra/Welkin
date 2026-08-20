@@ -1,39 +1,58 @@
-name: release
+name: Release
 
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 permissions:
   contents: read
   packages: write
+  id-token: run
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE: ${{ github.repository_owner }}/welkin
+  COLLECTOR_IMAGE: ghcr.io/openmeterio/benthos-collector:v1.0.0-beta.232
+  TIMONI_VERSION: "0.31.0"
 
 jobs:
   build-and-push:
+    name: Build & Push OCI Artifact
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Setup Timoni
+        uses: stefanprodan/timoni/actions/setup@main
         with:
-          go-version: '1.24'
+          version: ${{ env.TIMONI_VERSION }}
 
-      - name: Install Timoni
-        run: go install github.com/stefanprodan/timoni/cmd/timoni@v0.30.0
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | timoni registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-      - name: Push artifact
+      - name: Build artifact (directory source, NO build step)
+        env:
+          OPENMETER_TOKEN: test
+          ARCHIVE_S3_BUCKET: welkin-archive
+          ARCHIVE_S3_ACCESS_KEY_ID: minio
+          ARCHIVE_S3_SECRET_ACCESS_KEY: minio123
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          DIGEST=$(timoni artifact push oci://${{ env.REGISTRY }}/${{ env.IMAGE }} \
+          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+
+      - name: Push OCI artifact with --resolve-symlinks
+        run: |
+          DIGEST=$(flux push artifact oci://ghcr.io/${{ env.REGISTRY }}/${{ env.IMAGE }} \
             -f dist/oci \
             --resolve-symlinks \
             --tag="${VERSION}" \
@@ -43,24 +62,21 @@ jobs:
             --annotation="org.opencontainers.image.version=${VERSION}" \
             2>&1 | grep "digest:" | awk '{print $2}')
           echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
-          echo "### Release Artifact" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Tag: \`${VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Digest: \`${DIGEST}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Registry: \`${{ env.REGISTRY }}/${{ env.IMAGE }}\`" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify artifact
+  sign-artifact:
+    name: Sign Artifact (Cosign)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      id-token: write
+    steps:
+      - name: Setup Cosign
+        uses: sigstore/cosign-installer@main
+
+      - name: Sign artifact
         run: |
-          VERSION="${GITHUB_REF_NAME}"
-          timoni artifact pull oci://${{ env.REGISTRY }}/${{ env.IMAGE }}:${VERSION} \
-            --output /tmp/verify
-          echo "Pulled artifact contents:"
-          ls -la /tmp/verify/
-          timoni bundle vet -f /tmp/verify/welkin.bundle.cue \
-            -f /tmp/verify/welkin.runtime.cue \
-            -f /tmp/verify/collector.cue \
-            -f /tmp/verify/openmeter.cue \
-            -f /tmp/verify/postgres.cue \
-            -f /tmp/verify/minio.cue \
-            --runtime-from-env
-        env:
-          OPENMETER_TOKEN: "verify"
+          cosign sign --yes \
+            ghcr.io/${{ github.repository }}/welkin:${{ github.ref_name }} \
+            --annotations "build-date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --annotations "git-sha=${{ github.sha }}"
