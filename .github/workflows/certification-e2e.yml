@@ -7,11 +7,6 @@ on:
         required: true
         description: 'Scenario to test (canonical-flow, plane-independence, etc.)'
         default: 'canonical-flow'
-      timeout-minutes:
-        required: false
-        description: 'Total workflow timeout in minutes'
-        default: '30'
-
 permissions:
   contents: read
   packages: write
@@ -34,7 +29,7 @@ env:
 jobs:
   certify:
     runs-on: ubuntu-latest
-    timeout-minutes: ${{ inputs.timeout-minutes }}
+    timeout-minutes: 30
     env:
       DEPLOY_TIMEOUT: "360s"
       CERT_TIMEOUT: "600s"
