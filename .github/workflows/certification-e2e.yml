@@ -31,8 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      DEPLOY_TIMEOUT: "360s"
-      CERT_TIMEOUT: "600s"
+      DEPLOY_TIMEOUT_SEC: "420"
+      CERT_TIMEOUT_SEC: "600"
 
     steps:
       - name: Check out repo
@@ -108,15 +108,20 @@ jobs:
       - name: Wait for OpenMeter and collector pods
         run: |
           set -x
-          DEADLINE=$(( $(date +%s) + DEPLOY_TIMEOUT ))
+          DEADLINE=$(( $(date +%s) + DEPLOY_TIMEOUT_SEC ))
           wait_pod() {
             local label="$1"
+            local deadline="$DEADLINE"
             until kubectl get pods -n welkin-system -l "$label" 2>/dev/null | grep -q Running; do
-              [ "$(date +%s)" -gt "$DEADLINE" ] && { echo "Timed out waiting for $label"; kubectl get pods -n welkin-system; return 1; }
+              if [ "$(date +%s)" -gt "$deadline" ]; then
+                echo "Timed out waiting for $label to reach Running"
+                kubectl get pods -n welkin-system || true
+                return 1
+              fi
               kubectl get pods -n welkin-system 2>/dev/null || true
               sleep 5
             done
-            kubectl wait -n welkin-system --for=condition=ready pod -l "$label" --timeout="${CERT_TIMEOUT}"
+            kubectl wait -n welkin-system --for=condition=ready pod -l "$label" --timeout="${CERT_TIMEOUT_SEC}s"
           }
           wait_pod "app.kubernetes.io/name=openmeter-api"
           wait_pod "app.kubernetes.io/name=benthos-collector"
@@ -134,7 +139,7 @@ jobs:
           kubectl apply -f dist/flux/certification/certification-job.yaml
           kubectl wait --namespace=welkin-system \
             --for=condition=Complete \
-            --timeout=${CERT_TIMEOUT} \
+            --timeout=${CERT_TIMEOUT_SEC}s \
             job/welkin-certification
 
       - name: Collect evidence
