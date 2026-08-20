@@ -77,7 +77,8 @@ jobs:
             --tag="${VERSION}" \
             --annotation="org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             --annotation="org.opencontainers.image.revision=${{ github.sha }}" \
-            2>&1 | grep "digest:" | awk '{print $2}')
+            2>&1 | sed -n 's/.*digest=[[:space:]]*\(sha256:[a-f0-9]\{64\}\).*/\1/p' | head -1)
+          [ -n "$DIGEST" ] || DIGEST="unknown"
           echo "WELKIN_DIGEST=${DIGEST}" >> "$GITHUB_ENV"
           echo "Pushed oci://${{ env.REGISTRY }}/${{ env.IMAGE }} digest=${DIGEST}"
 
@@ -106,14 +107,19 @@ jobs:
 
       - name: Wait for OpenMeter and collector pods
         run: |
-          kubectl wait --namespace=welkin-system \
-            --for=condition=ready pod \
-            --timeout=${DEPLOY_TIMEOUT} \
-            -l app.kubernetes.io/name=openmeter-api
-          kubectl wait --namespace=welkin-system \
-            --for=condition=ready pod \
-            --timeout=${DEPLOY_TIMEOUT} \
-            -l app.kubernetes.io/name=benthos-collector
+          set -x
+          DEADLINE=$(( $(date +%s) + DEPLOY_TIMEOUT ))
+          wait_pod() {
+            local label="$1"
+            until kubectl get pods -n welkin-system -l "$label" 2>/dev/null | grep -q Running; do
+              [ "$(date +%s)" -gt "$DEADLINE" ] && { echo "Timed out waiting for $label"; kubectl get pods -n welkin-system; return 1; }
+              kubectl get pods -n welkin-system 2>/dev/null || true
+              sleep 5
+            done
+            kubectl wait -n welkin-system --for=condition=ready pod -l "$label" --timeout="${CERT_TIMEOUT}"
+          }
+          wait_pod "app.kubernetes.io/name=openmeter-api"
+          wait_pod "app.kubernetes.io/name=benthos-collector"
 
       - name: Create certification secret (CI Environment State only)
         run: |
