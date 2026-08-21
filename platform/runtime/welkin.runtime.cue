@@ -12,8 +12,9 @@ runtime: {
   }
 
   openmeter: {
-    url:   *"http://openmeter-api" | string @timoni(runtime:string:OPENMETER_URL)
-    token: *"changeme" | string @timoni(runtime:string:OPENMETER_TOKEN)
+    url:    *"http://openmeter-api" | string @timoni(runtime:string:OPENMETER_URL)
+    token:  *"changeme" | string @timoni(runtime:string:OPENMETER_TOKEN)
+    meters: "" @timoni(runtime:string:OPENMETER_METERS_CONFIG)
   }
 
   postgres: {
