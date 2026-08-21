@@ -41,7 +41,7 @@ jobs:
         run: |
           make build > /tmp/bundle.yaml
       - name: Setup CUE
-        uses: cue-lang/setup-cue@v1
+        uses: cue-lang/setup-cue@v1.0.1
       - name: Lint CUE (dev bundle group)
         run: |
           cue vet -c platform/bundles/welkin-dev.bundle.cue platform/runtime/welkin.runtime.cue spec/meters/meters.cue platform/collector/collector.cue platform/economic/openmeter.cue platform/economic/postgres.cue platform/archive/minio.cue

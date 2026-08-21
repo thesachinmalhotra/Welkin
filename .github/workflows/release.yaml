@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: run
+  id-token: write
 
 env:
   TIMONI_VERSION: "0.31.0"
