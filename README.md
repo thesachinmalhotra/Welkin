@@ -8,7 +8,7 @@ Welkin v1 has one governing rule: producer diversity is allowed only before cano
 
 - `spec/` for canonical event and archive contract definitions
 - `platform/` for the primary install surface and runtime contract (plane-based, including the OpenMeter Collector via `platform/collector/`)
-- `dist/oci/` for release OCI artifact source; `dist/flux/` for CI-only resources
+- `dist/flux/` for CI-only resources
 - `.github/workflows/` for validation and certification workflows
 - `docs/` for architecture, deployment, certification, and operator guidance
 

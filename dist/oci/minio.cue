@@ -1,1 +1,0 @@
-../../platform/archive/minio.cue

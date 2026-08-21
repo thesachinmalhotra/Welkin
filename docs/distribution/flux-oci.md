@@ -5,10 +5,10 @@ How a Welkin release flows from Timoni to a running cluster via Flux.
 ## Architecture
 
 ```
-dist/oci/  (symlinks -> canonical platform CUE)
+platform/  (canonical composition CUE)
         │
         ▼
-timoni artifact push oci://ghcr.io/<org>/welkin:v1.0.0  --resolve-symlinks
+timoni artifact push oci://ghcr.io/<org>/welkin:v1.0.0 -f platform
         │
         ▼
   OCI artifact in registry (immutable digest)
@@ -22,23 +22,20 @@ Flux Kustomization applies the rendered manifests
 
 ## Release artifact
 
-The release directory (`dist/oci/`) contains symlinks to the canonical CUE files:
+The release artifact is the `platform/` directory itself — the canonical
+composition CUE, pushed as-is. There is no staging copy or symlink farm:
 
 ```
-dist/oci/
-  welkin.bundle.cue    → platform/bundles/welkin.bundle.cue
-  welkin.runtime.cue   → platform/runtime/welkin.runtime.cue
-  collector.cue        → platform/collector/collector.cue
-  openmeter.cue        → platform/economic/openmeter.cue
-  postgres.cue         → platform/economic/postgres.cue
-  minio.cue            → platform/archive/minio.cue
+platform/
+  bundles/    dev + prod Timoni bundles
+  runtime/    runtime injection points (Environment State)
+  collector/  collector component values
+  economic/   OpenMeter + Postgres component values
+  archive/    MinIO component values
 ```
 
-The `release.yaml` workflow pushes this directory as an OCI artifact on every `v*` tag.
-Because `dist/oci/` is made of symlinks, the workflow uses `timoni artifact push -f dist/oci --resolve-symlinks`
-so the symlink targets are packaged as regular files. (`timoni artifact build` does **not**
-resolve symlinks and would produce an empty artifact layer — only `push --resolve-symlinks` does.)
-The built OCI content (6 CUE files) is byte-identical to the resolved platform files.
+The `release.yaml` workflow pushes this directory as an OCI artifact on every
+`v*` tag via `timoni artifact push -f platform`.
 
 ## Consuming from Flux
 
@@ -105,13 +102,5 @@ data:
 
 - **Semver tag** (e.g., `v1.2.0`): communicates human-readable release intent
 - **OCI digest** (e.g., `sha256:abc...`): provides immutable artifact identity
-- **`latest` tag**: always points to the most recent release
 
 Flux resolves semver to a specific digest on each reconciliation loop.
-
-## CI verification
-
-The `release.yaml` workflow verifies the artifact after push:
-1. Pulls the artifact back from the registry
-2. Runs `timoni bundle vet` against the extracted files
-3. Reports the digest in the GitHub Actions step summary

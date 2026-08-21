@@ -12,12 +12,12 @@ runtime: {
   }
 
   openmeter: {
-    url:    *"http://openmeter-api" | string @timoni(runtime:string:OPENMETER_URL)
-    token:  *"changeme" | string @timoni(runtime:string:OPENMETER_TOKEN)
-    meters: "" @timoni(runtime:string:OPENMETER_METERS_CONFIG)
+    url:   *"http://openmeter-api" | string @timoni(runtime:string:OPENMETER_URL)
+    token: *"changeme" | string @timoni(runtime:string:OPENMETER_TOKEN)
   }
 
   postgres: {
+    host:             *"postgres" | string @timoni(runtime:string:POSTGRES_HOST)
     username:         *"application" | string @timoni(runtime:string:POSTGRES_USERNAME)
     password:         *"application" | string @timoni(runtime:string:POSTGRES_PASSWORD)
     database:         *"application" | string @timoni(runtime:string:POSTGRES_DATABASE)
@@ -29,7 +29,7 @@ runtime: {
   }
 
   archive: {
-    endpoint:         *"http://minio.welkin-system.svc.cluster.local:9000" | string
+    endpoint:         *"http://minio.welkin-system.svc.cluster.local:9000" | string @timoni(runtime:string:ARCHIVE_S3_ENDPOINT)
     bucket:           *"welkin-archive" | string @timoni(runtime:string:ARCHIVE_S3_BUCKET)
     region:           *"us-east-1" | string
     forcePathStyle:   *true | bool

@@ -12,8 +12,7 @@ permissions:
   packages: write
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE: ${{ github.repository_owner }}/welkin
+  ARTIFACT: oci://ghcr.io/${{ github.repository_owner }}/welkin
   # Synthetic certification credentials, isolated to CI Environment State.
   # They are only ever written into the ephemeral kind cluster as a Secret
   # for the duration of this run; they are not production defaults.
@@ -71,16 +70,15 @@ jobs:
         run: |
           VERSION="${GITHUB_SHA:0:8}"
           echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
-          DIGEST=$(timoni artifact push "oci://${{ env.REGISTRY }}/${{ env.IMAGE }}" \
-            -f dist/oci \
-            --resolve-symlinks \
+          DIGEST=$(timoni artifact push "${{ env.ARTIFACT }}" \
+            -f platform \
             --tag="${VERSION}" \
             --annotation="org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             --annotation="org.opencontainers.image.revision=${{ github.sha }}" \
             2>&1 | sed -n 's/.*digest=[[:space:]]*\(sha256:[a-f0-9]\{64\}\).*/\1/p' | head -1)
           [ -n "$DIGEST" ] || DIGEST="unknown"
           echo "WELKIN_DIGEST=${DIGEST}" >> "$GITHUB_ENV"
-          echo "Pushed oci://${{ env.REGISTRY }}/${{ env.IMAGE }} digest=${DIGEST}"
+          echo "Pushed ${{ env.ARTIFACT }} digest=${DIGEST}"
 
       - name: Deploy Welkin via Timoni bundle apply
         run: |

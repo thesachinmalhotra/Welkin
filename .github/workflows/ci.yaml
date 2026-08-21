@@ -40,36 +40,22 @@ jobs:
           ARCHIVE_S3_SECRET_ACCESS_KEY: minio123
         run: |
           make build > /tmp/bundle.yaml
-      - name: Lint CUE
+      - name: Setup CUE
+        uses: cue-lang/setup-cue@v1
+      - name: Lint CUE (dev bundle group)
         run: |
-          cue vet ./*.cue ./platform/**/*.cue
-
-  diff-artifact:
-    name: Diff Artifact (gate on main)
-    runs-on: ubuntu-latest
-    needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Timoni
-        uses: stefanprodan/timoni/actions/setup@main
-      - name: Setup Flux CLI
-        uses: fluxcd/flux2/action@main
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build bundle
+          cue vet -c platform/bundles/welkin-dev.bundle.cue platform/runtime/welkin.runtime.cue spec/meters/meters.cue platform/collector/collector.cue platform/economic/openmeter.cue platform/economic/postgres.cue platform/archive/minio.cue
+      - name: Lint CUE (prod bundle group)
+        run: |
+          cue vet -c platform/bundles/welkin-prod.bundle.cue platform/runtime/welkin.runtime.cue spec/meters/meters.cue platform/collector/collector.cue platform/economic/openmeter.cue
+      - name: Lint CUE (schema)
+        run: |
+          cue vet -c spec/schema/cloudevent.cue
+      - name: Vet prod bundle
         env:
           OPENMETER_TOKEN: test
           ARCHIVE_S3_BUCKET: welkin-archive
           ARCHIVE_S3_ACCESS_KEY_ID: minio
           ARCHIVE_S3_SECRET_ACCESS_KEY: minio123
         run: |
-          make build > /tmp/bundle.yaml
-      - name: Diff against latest artifact
-        run: |
-          flux diff artifact oci://ghcr.io/${{ github.repository }}/welkin:latest \
-            --path /tmp/bundle.yaml || true
+          make vet-prod

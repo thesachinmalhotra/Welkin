@@ -11,8 +11,8 @@ permissions:
   id-token: run
 
 env:
-  COLLECTOR_IMAGE: ghcr.io/openmeterio/benthos-collector:v1.0.0-beta.232
   TIMONI_VERSION: "0.31.0"
+  ARTIFACT: oci://ghcr.io/${{ github.repository_owner }}/welkin
 
 jobs:
   build-and-push:
@@ -40,28 +40,29 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build artifact (directory source, NO build step)
+      - name: Vet composition before release
         env:
           OPENMETER_TOKEN: test
           ARCHIVE_S3_BUCKET: welkin-archive
           ARCHIVE_S3_ACCESS_KEY_ID: minio
           ARCHIVE_S3_SECRET_ACCESS_KEY: minio123
         run: |
-          VERSION="${GITHUB_REF_NAME}"
-          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+          make vet-prod
 
-      - name: Push OCI artifact with --resolve-symlinks
+      - name: Push OCI artifact (platform/ composition source)
+        id: push
         run: |
-          DIGEST=$(flux push artifact oci://ghcr.io/${{ env.REGISTRY }}/${{ env.IMAGE }} \
-            -f dist/oci \
-            --resolve-symlinks \
+          VERSION="${GITHUB_REF_NAME}"
+          DIGEST=$(timoni artifact push "${{ env.ARTIFACT }}" \
+            -f platform \
             --tag="${VERSION}" \
-            --tag=latest \
             --annotation="org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             --annotation="org.opencontainers.image.revision=${{ github.sha }}" \
             --annotation="org.opencontainers.image.version=${VERSION}" \
-            2>&1 | grep "digest:" | awk '{print $2}')
+            2>&1 | sed -n 's/.*digest=[[:space:]]*\(sha256:[a-f0-9]\{64\}\).*/\1/p' | head -1)
+          [ -n "$DIGEST" ] || { echo "push failed to produce a digest"; exit 1; }
           echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Pushed ${{ env.ARTIFACT }}:${VERSION} digest=${DIGEST}"
 
   sign-artifact:
     name: Sign Artifact (Cosign)
@@ -77,6 +78,6 @@ jobs:
       - name: Sign artifact
         run: |
           cosign sign --yes \
-            ghcr.io/${{ github.repository }}/welkin:${{ github.ref_name }} \
+            ghcr.io/${{ github.repository_owner }}/welkin:${{ github.ref_name }} \
             --annotations "build-date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --annotations "git-sha=${{ github.sha }}"

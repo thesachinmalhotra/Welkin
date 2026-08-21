@@ -62,8 +62,8 @@ Before pushing, run the checks that apply to your changes:
 
 | Change type | Run this |
 |---|---|
-| CUE files | `cue vet` on the relevant schemas |
-| Timoni bundle | `timoni bundle vet -f platform/bundles/welkin.bundle.cue -f platform/runtime/welkin.runtime.cue -f platform/collector/collector.cue -f platform/economic/openmeter.cue -f platform/economic/postgres.cue -f platform/archive/minio.cue --runtime-from-env` |
+| CUE files | `cue vet -c` on the relevant bundle group (see `ci.yaml` Lint steps) |
+| Timoni bundle | `make vet` (dev) / `make vet-prod` |
 | Commit messages | `pre-commit run commitizen --hook-stage commit-msg` |
 
 **No CI run until local checks are green.**
@@ -88,7 +88,7 @@ Before pushing, run the checks that apply to your changes:
 - Do not embed infrastructure manifests in Python scripts
 - Do not hardcode credentials in Platform State (`.cue` files)
 - Do not use `@latest` or unpinned versions
-- Do not bypass the collector boundary (always POST to `:4195/events`)
+- Do not bypass the collector boundary (always POST to `:8080/api/v1/events`)
 - `collector/config/base.yaml` was deleted in Phase 1 — collector config lives only in `platform/collector/collector.cue`
 - Do not commit secrets, tokens, or keys
 

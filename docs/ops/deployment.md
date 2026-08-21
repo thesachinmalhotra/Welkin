@@ -2,7 +2,7 @@
 
 ## Primary install surface
 
-Welkin is installed through the Timoni bundle at `platform/bundles/welkin.bundle.cue`.
+Welkin is installed through the Timoni bundle at `platform/bundles/welkin-dev.bundle.cue`.
 
 The bundle:
 
@@ -24,7 +24,7 @@ Required (apply fails if unset):
 Optional overrides (sensible `*` defaults in the runtime):
 
 - `OPENMETER_URL` — OpenMeter endpoint (default `http://openmeter-api`)
-- `COLLECTOR_PRESET` — upstream collector preset
+- `ARCHIVE_S3_ENDPOINT` — S3-compatible archive endpoint (default in-cluster MinIO)
 - `ARCHIVE_S3_BUCKET` — archive bucket (also MinIO `defaultBuckets`)
 - `ARCHIVE_S3_ACCESS_KEY_ID` / `ARCHIVE_S3_SECRET_ACCESS_KEY` — MinIO/S3 credentials
 - `POSTGRES_USERNAME` / `POSTGRES_PASSWORD` / `POSTGRES_DATABASE` / `POSTGRES_ADMIN_PASSWORD`

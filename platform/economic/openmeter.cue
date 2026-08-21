@@ -23,8 +23,9 @@ openmeterValues: {
     }
     config: {
       postgres: {
-        url: "postgres://\(runtime.postgres.username):\(runtime.postgres.password)@postgres:5432/\(runtime.postgres.database)?sslmode=disable"
+        url: "postgres://\(runtime.postgres.username):\(runtime.postgres.password)@\(runtime.postgres.host):5432/\(runtime.postgres.database)?sslmode=disable"
       }
+      meters: meterCatalog
     }
   }
 }

@@ -1,1 +1,0 @@
-../../platform/economic/postgres.cue

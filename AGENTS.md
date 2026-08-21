@@ -350,7 +350,7 @@ Enforced by `.commitlintrc.json` and `.pre-commit-config.yaml`.
 | `platform/economic/` | Economic plane components (OpenMeter, Postgres) |
 | `platform/archive/` | Archive plane components (MinIO) |
 | `platform/collector/` | Collector component values |
-| `dist/oci/` | Release OCI artifact source (symlinks to platform/) |
+| `spec/meters/` | Meter catalog (wired into OpenMeter config) |
 | `.github/workflows/` | CI workflows |
 
 ### What NOT to do
@@ -359,7 +359,7 @@ Enforced by `.commitlintrc.json` and `.pre-commit-config.yaml`.
 - Do not embed infrastructure manifests in Python scripts.
 - Do not hardcode credentials in Platform State.
 - Do not use `@latest` or unpinned versions.
-- Do not bypass the collector boundary (always POST to `:4195/events`).
+- Do not bypass the collector boundary (always POST to `:8080/api/v1/events`).
 - Do not commit secrets, tokens, or keys.
 
 ---

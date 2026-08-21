@@ -10,7 +10,7 @@ Core philosophy: **compose, don't build**. Every runtime behavior comes from an 
 
 Welkin has one governing rule: **producer diversity is allowed only before canonicalization**. Once an event becomes a canonical CloudEvent, runtime metering and archive handling are identical regardless of producer type.
 
-The collector boundary (`:4195/events`) is the only valid ingestion point. Events are validated against the canonical CloudEvent contract before fan-out. Malformed events are dropped there.
+The collector boundary (`:8080/api/v1/events`) is the only valid ingestion point. Events are validated against the canonical CloudEvent contract before fan-out. Malformed events are dropped there.
 
 ```mermaid
 flowchart LR
@@ -79,11 +79,11 @@ Welkin composes managed services via `platform/runtime/welkin.runtime.cue` Timon
 
 ```bash
 timoni bundle apply \
-  -f platform/bundles/welkin.bundle.cue \
+  -f platform/bundles/welkin-prod.bundle.cue \
   -f platform/runtime/welkin.runtime.cue \
+  -f spec/meters/meters.cue \
   -f platform/collector/collector.cue \
   -f platform/economic/openmeter.cue \
-  -f platform/archive/minio.cue \
   --runtime-from-env
 ```
 
@@ -95,7 +95,7 @@ The `certification-e2e.yml` workflow provides executable evidence for architectu
 
 1. Builds and pushes the release OCI artifact once, capturing its immutable digest.
 2. Creates an ephemeral kind cluster and applies the Timoni bundle via `timoni bundle apply` — the same composition path as production.
-3. Runs a certification Job that POSTs a canonical CloudEvent to `:4195/events` and asserts both planes.
+3. Runs a certification Job that POSTs a canonical CloudEvent to `:8080/api/v1/events` and asserts both planes.
 4. Collects evidence (scenario id, OCI digest, Job logs, cluster resources) into `/tmp/welkin-evidence/`.
 5. Uploads the evidence artifact and destroys the cluster unconditionally.
 
@@ -123,9 +123,11 @@ All `@timoni` runtime injection points in `platform/runtime/welkin.runtime.cue`:
 | `runtime:namespace` | `WELKIN_NAMESPACE` | Target Kubernetes namespace | `welkin-system` |
 | `runtime:openmeter:url` | `OPENMETER_URL` | OpenMeter API endpoint | `http://openmeter-api` |
 | `runtime:openmeter:token` | `OPENMETER_TOKEN` | OpenMeter auth token | `changeme` |
+| `runtime:postgres:host` | `POSTGRES_HOST` | Postgres host for OpenMeter | `postgres` |
 | `runtime:postgres:username` | `POSTGRES_USERNAME` | Postgres username for OpenMeter | `application` |
 | `runtime:postgres:password` | `POSTGRES_PASSWORD` | Postgres password for OpenMeter | `application` |
 | `runtime:postgres:database` | `POSTGRES_DATABASE` | Postgres database name | `application` |
+| `runtime:archive:endpoint` | `ARCHIVE_S3_ENDPOINT` | S3-compatible archive endpoint | in-cluster MinIO |
 | `runtime:archive:bucket` | `ARCHIVE_S3_BUCKET` | S3 bucket for Parquet archive | `welkin-archive` |
 | `runtime:archive:accessKeyId` | `ARCHIVE_S3_ACCESS_KEY_ID` | S3 access key | `minio` |
 | `runtime:archive:secretAccessKey` | `ARCHIVE_S3_SECRET_ACCESS_KEY` | S3 secret key | `minio123` |

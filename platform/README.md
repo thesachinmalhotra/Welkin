@@ -4,7 +4,7 @@ Timoni is the primary install surface for Welkin.
 
 The packaging is split along the platform/environment boundary:
 
-- **Platform State** (immutable, versioned) — `bundles/welkin.bundle.cue` declares the
+- **Platform State** (immutable, versioned) — `bundles/welkin-dev.bundle.cue` declares the
   chart-backed Welkin releases (Flux, Postgres, MinIO, OpenMeter, Collector). Plane
   values live in `collector/`, `economic/`, and `archive/`.
 - **Environment State** (mutable, per-deployment) — `runtime/welkin.runtime.cue` declares
@@ -35,8 +35,8 @@ make status       # show applied instances, module URL and digest
 ```
 
 Running `timoni bundle vet`/`apply` by hand requires every file in
-`bundles/welkin.bundle.cue`, `runtime/welkin.runtime.cue`, and the three plane
-directories — the Makefile sets that up for you.
+`bundles/welkin-dev.bundle.cue`, `runtime/welkin.runtime.cue`, `spec/meters/meters.cue`,
+and the three plane directories — the Makefile sets that up for you.
 
 ## Environment parameters
 
@@ -47,7 +47,7 @@ are **required** (apply fails if unset); the rest are optional overrides:
 |---|---|---|
 | `OPENMETER_TOKEN` | — | OpenMeter API token (collector native output) |
 | `OPENMETER_URL` | `http://openmeter-api` | OpenMeter endpoint |
-| `COLLECTOR_PRESET` | `kubernetes-pod-exec-time` | Upstream collector preset |
+| `ARCHIVE_S3_ENDPOINT` | `http://minio.welkin-system.svc.cluster.local:9000` | S3-compatible archive endpoint |
 | `ARCHIVE_S3_BUCKET` | — | Archive bucket (also MinIO `defaultBuckets`) |
 | `ARCHIVE_S3_ACCESS_KEY_ID` | `minio` | MinIO root user / S3 access key |
 | `ARCHIVE_S3_SECRET_ACCESS_KEY` | `minio123` | MinIO root password / S3 secret key |

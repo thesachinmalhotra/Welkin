@@ -4,7 +4,7 @@ Welkin certification exists to prove architectural guarantees with executable ev
 
 1. Builds and pushes the release OCI artifact exactly once, capturing its immutable digest.
 2. Creates an ephemeral kind cluster and applies the Timoni bundle (`timoni bundle apply`) — the same composition path as production.
-3. Applies the certification Job (`dist/flux/certification/certification-job.yaml`), which POSTs a canonical CloudEvent to the collector boundary at `:4195/events` and asserts the planes.
+3. Applies the certification Job (`dist/flux/certification/certification-job.yaml`), which POSTs a canonical CloudEvent to the collector boundary at `:8080/api/v1/events` and asserts the planes.
 4. Collects evidence into one deterministic directory, uploads it as an artifact, and destroys the cluster unconditionally.
 
 ## Guarantees

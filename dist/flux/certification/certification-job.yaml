@@ -23,7 +23,7 @@ spec:
           args:
             - |
               set -e
-              COLLECTOR="http://openmeter-collector:4195/events"
+              COLLECTOR="http://openmeter-collector:8080/api/v1/events"
               OPENMETER="http://openmeter-api:80/api/v1/meters/kubernetes-pod-exec-time/values"
               MINIO="http://minio:9000"
               BUCKET="welkin-archive"

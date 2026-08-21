@@ -1,1 +1,0 @@
-../../platform/collector/collector.cue
