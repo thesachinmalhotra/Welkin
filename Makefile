@@ -1,4 +1,5 @@
 FILE_OPTS_DEV = -f platform/bundles/welkin-dev.bundle.cue
+FILE_OPTS_DEV += -f platform/product.cue
 FILE_OPTS_DEV += -f platform/runtime/welkin.runtime.cue
 FILE_OPTS_DEV += -f spec/meters/meters.cue
 FILE_OPTS_DEV += -f platform/collector/collector.cue
@@ -7,6 +8,7 @@ FILE_OPTS_DEV += -f platform/economic/postgres.cue
 FILE_OPTS_DEV += -f platform/archive/minio.cue
 
 FILE_OPTS_PROD = -f platform/bundles/welkin-prod.bundle.cue
+FILE_OPTS_PROD += -f platform/product.cue
 FILE_OPTS_PROD += -f platform/runtime/welkin.runtime.cue
 FILE_OPTS_PROD += -f spec/meters/meters.cue
 FILE_OPTS_PROD += -f platform/collector/collector.cue

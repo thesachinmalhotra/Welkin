@@ -132,4 +132,4 @@ All `@timoni` runtime injection points in `platform/runtime/welkin.runtime.cue`:
 | `runtime:archive:accessKeyId` | `ARCHIVE_S3_ACCESS_KEY_ID` | S3 access key | `minio` |
 | `runtime:archive:secretAccessKey` | `ARCHIVE_S3_SECRET_ACCESS_KEY` | S3 secret key | `minio123` |
 
-Chart versions are pinned in `runtime:charts` and are not runtime-injected (immutability by design).
+Chart versions, product semantics and defaults are pinned in `platform/product.cue` — the immutable product definition. The Runtime API (`platform/runtime/welkin.runtime.cue`) contains only environment-specific values.

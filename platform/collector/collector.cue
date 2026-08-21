@@ -4,7 +4,7 @@ collectorValues: {
   repository: url: "oci://ghcr.io/openmeterio/helm-charts"
   chart: {
     name:    "benthos-collector"
-    version: runtime.charts.collectorVersion
+    version: product.charts.collectorVersion
   }
   sync: {
     targetNamespace: runtime.namespace
@@ -15,7 +15,7 @@ collectorValues: {
     // openmeter-collector.<namespace>.svc.
     fullnameOverride: "openmeter-collector"
 
-    image: runtime.collector.image
+    image: product.collectorImage
 
     // Expose the event input (container port "http" = 8080) as a Service.
     service: {
@@ -132,7 +132,7 @@ collectorValues: {
                       bucket:               runtime.archive.bucket
                       path:                 "events/${!timestamp_unix()}-${!uuid_v4()}.parquet"
                       endpoint:             runtime.archive.endpoint
-                      force_path_style_urls: true
+                      force_path_style_urls: runtime.archive.forcePathStyle
                       region:               runtime.archive.region
                       credentials: {
                         id:     runtime.archive.accessKeyId
@@ -140,8 +140,8 @@ collectorValues: {
                       }
                       max_in_flight: 1
                       batching: {
-                        count:  runtime.archive.batchCount
-                        period: runtime.archive.batchPeriod
+                        count:  product.archive.batchCount
+                        period: product.archive.batchPeriod
                         processors: [{
                           parquet_encode: {
                             schema: [

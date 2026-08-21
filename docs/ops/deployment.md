@@ -28,7 +28,7 @@ Optional overrides (sensible `*` defaults in the runtime):
 - `ARCHIVE_S3_BUCKET` — archive bucket (also MinIO `defaultBuckets`)
 - `ARCHIVE_S3_ACCESS_KEY_ID` / `ARCHIVE_S3_SECRET_ACCESS_KEY` — MinIO/S3 credentials
 - `POSTGRES_USERNAME` / `POSTGRES_PASSWORD` / `POSTGRES_DATABASE` / `POSTGRES_ADMIN_PASSWORD`
-- archive endpoint, region, batch, and force-path-style knobs
+- archive endpoint, region, force-path-style knobs (batch sizing is a product default in `platform/product.cue`)
 
 The full contract and table is in `platform/README.md`.
 

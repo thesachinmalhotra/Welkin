@@ -162,7 +162,9 @@ Platform State defines the Welkin composition:
 * platform configuration
 * distribution identity
 
-It is immutable and versioned as part of a Welkin release.
+It is immutable and versioned as part of a Welkin release. In the repository it
+lives in `platform/product.cue` (versions, product semantics, defaults), the
+bundle files (topology), and `spec/` (contracts). It is never runtime-injected.
 
 The Welkin platform, rather than individual upstream components, is the compatibility boundary.
 

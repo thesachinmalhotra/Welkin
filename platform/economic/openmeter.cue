@@ -4,7 +4,7 @@ openmeterValues: {
   repository: url: "oci://ghcr.io/openmeterio/helm-charts"
   chart: {
     name:    "openmeter"
-    version: runtime.charts.openmeterVersion
+    version: product.charts.openmeterVersion
   }
   sync: {
     targetNamespace: runtime.namespace

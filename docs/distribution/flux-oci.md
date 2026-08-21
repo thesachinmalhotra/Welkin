@@ -104,3 +104,10 @@ data:
 - **OCI digest** (e.g., `sha256:abc...`): provides immutable artifact identity
 
 Flux resolves semver to a specific digest on each reconciliation loop.
+
+## Promotion
+
+Staging and production promote the **same signed digest** — recorded in
+`environments/<env>/artifact.txt` and promoted via PR. See
+`environments/README.md`. Production always resolves to a digest, never a
+mutable tag.

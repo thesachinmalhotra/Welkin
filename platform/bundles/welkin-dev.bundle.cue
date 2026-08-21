@@ -7,7 +7,7 @@ bundle: {
     flux: {
       module: {
         url:     "oci://ghcr.io/stefanprodan/modules/flux-aio"
-        version: runtime.charts.fluxAioVersion
+        version: product.charts.fluxAioVersion
       }
       namespace: "flux-system"
       values: {
@@ -24,7 +24,7 @@ bundle: {
     postgres: {
       module: {
         url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
-        version: runtime.charts.fluxModuleVersion
+        version: product.charts.fluxModuleVersion
       }
       namespace: "flux-system"
       values: postgresValues
@@ -33,7 +33,7 @@ bundle: {
     minio: {
       module: {
         url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
-        version: runtime.charts.fluxModuleVersion
+        version: product.charts.fluxModuleVersion
       }
       namespace: "flux-system"
       values: minioValues
@@ -42,7 +42,7 @@ bundle: {
     openmeter: {
       module: {
         url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
-        version: runtime.charts.fluxModuleVersion
+        version: product.charts.fluxModuleVersion
       }
       namespace: "flux-system"
       values: openmeterValues
@@ -51,7 +51,7 @@ bundle: {
     collector: {
       module: {
         url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
-        version: runtime.charts.fluxModuleVersion
+        version: product.charts.fluxModuleVersion
       }
       namespace: "flux-system"
       values: collectorValues

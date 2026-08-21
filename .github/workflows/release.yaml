@@ -81,3 +81,12 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/welkin:${{ github.ref_name }} \
             --annotations "build-date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --annotations "git-sha=${{ github.sha }}"
+
+      - name: Verify signature (self-check)
+        run: |
+          cosign verify \
+            ghcr.io/${{ github.repository_owner }}/welkin:${{ github.ref_name }} \
+            --certificate-identity-regexp "^https://github.com/${{ github.repository }}/" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --annotation git-sha=${{ github.sha }} \
+            > /dev/null && echo "signature verified"
