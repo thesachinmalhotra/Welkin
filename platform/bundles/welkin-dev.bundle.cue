@@ -21,15 +21,6 @@ bundle: {
       }
     }
 
-    postgres: {
-      module: {
-        url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
-        version: product.charts.fluxModuleVersion
-      }
-      namespace: "flux-system"
-      values: postgresValues
-    }
-
     minio: {
       module: {
         url:     "oci://ghcr.io/stefanprodan/modules/flux-helm-release"
@@ -45,7 +36,9 @@ bundle: {
         version: product.charts.fluxModuleVersion
       }
       namespace: "flux-system"
-      values: openmeterValues
+      // Bundled Postgres via the chart's own subchart; the chart computes and
+      // overwrites config.postgres.url itself.
+      values: openmeterValues & {helmValues: postgresql: {enabled: true}}
     }
 
     collector: {

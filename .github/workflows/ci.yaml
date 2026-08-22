@@ -44,7 +44,7 @@ jobs:
         uses: cue-lang/setup-cue@a93fa358375740cd8b0078f76355512b9208acb1 # v1.0.1
       - name: Lint CUE (dev bundle group)
         run: |
-          cue vet -c platform/bundles/welkin-dev.bundle.cue platform/product.cue platform/runtime/welkin.runtime.cue spec/meters/meters.cue platform/collector/collector.cue platform/economic/openmeter.cue platform/economic/postgres.cue platform/archive/minio.cue
+          cue vet -c platform/bundles/welkin-dev.bundle.cue platform/product.cue platform/runtime/welkin.runtime.cue spec/meters/meters.cue platform/collector/collector.cue platform/economic/openmeter.cue platform/archive/minio.cue
       - name: Lint CUE (prod bundle group)
         run: |
           cue vet -c platform/bundles/welkin-prod.bundle.cue platform/product.cue platform/runtime/welkin.runtime.cue spec/meters/meters.cue platform/collector/collector.cue platform/economic/openmeter.cue

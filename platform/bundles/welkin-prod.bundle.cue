@@ -33,7 +33,9 @@ bundle: {
         version: product.charts.fluxModuleVersion
       }
       namespace: "flux-system"
-      values: openmeterValues
+      // External managed Postgres (Environment State): bundled subchart stays
+      // off; config.postgres.url is built from POSTGRES_* runtime injection.
+      values: openmeterValues & {helmValues: postgresql: {enabled: false}}
     }
 
     collector: {

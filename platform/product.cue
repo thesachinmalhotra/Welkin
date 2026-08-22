@@ -12,7 +12,6 @@ product: {
     fluxModuleVersion: "2.9.4-0"
     openmeterVersion:  "1.0.0-beta.232"
     collectorVersion:  "1.0.0-beta.232"
-    postgresVersion:   "16.7.13"
   }
 
   // Derived from the collector chart version — single source, no drift.

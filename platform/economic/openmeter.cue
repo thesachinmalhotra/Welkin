@@ -12,9 +12,10 @@ openmeterValues: {
     timeout:         15
   }
   helmValues: {
-    postgresql: {
-      enabled: false
-    }
+    // postgresql.enabled is decided per bundle: dev/cert enables the chart's
+    // own Bitnami subchart (the chart then overwrites config.postgres.url and
+    // wires the DSN itself); prod sets false and uses the external-Postgres
+    // URL below via runtime injection.
     svix: {
       enabled: false
     }
@@ -35,6 +36,8 @@ openmeterValues: {
     }
     config: {
       postgres: {
+        // External-Postgres endpoint (prod). Ignored in dev/cert, where the
+        // enabled subchart overwrites this URL with its own computed DSN.
         url: "postgres://\(runtime.postgres.username):\(runtime.postgres.password)@\(runtime.postgres.host):5432/\(runtime.postgres.database)?sslmode=disable"
       }
       meters: meterCatalog
