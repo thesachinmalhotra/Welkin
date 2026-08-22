@@ -34,6 +34,10 @@ collectorValues: {
     // The chart treats `config` as all-or-nothing (config > configFile >
     // preset), so input, validation, buffer and outputs are composed here,
     // following upstream's documented manual configuration shape.
+    //
+    // SYNC POLICY: This config mirrors the pinned upstream preset
+    // `http-server` from benthos-collector chart v1.0.0-beta.232.
+    // Check upstream release notes on every chart version bump.
     config: {
       http: {
         enabled:         true
@@ -179,6 +183,7 @@ collectorValues: {
                       batching: {
                         count:  product.archive.batchCount
                         period: product.archive.batchPeriod
+                        // Archive subset of CloudEvent — 7 fields, not full spec.
                         processors: [{
                           parquet_encode: {
                             schema: [

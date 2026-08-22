@@ -38,7 +38,7 @@ openmeterValues: {
       postgres: {
         // External-Postgres endpoint (prod). Ignored in dev/cert, where the
         // enabled subchart overwrites this URL with its own computed DSN.
-        url: "postgres://\(runtime.postgres.username):\(runtime.postgres.password)@\(runtime.postgres.host):5432/\(runtime.postgres.database)?sslmode=disable"
+        url: "postgres://\(runtime.postgres.username):\(runtime.postgres.password)@\(runtime.postgres.host):\(runtime.postgres.port)/\(runtime.postgres.database)?sslmode=disable"
       }
       meters: meterCatalog
     }

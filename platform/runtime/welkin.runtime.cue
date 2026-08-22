@@ -16,6 +16,7 @@ runtime: {
 
   postgres: {
     host:             *"postgres" | string @timoni(runtime:string:POSTGRES_HOST)
+    port:             *"5432" | string @timoni(runtime:string:POSTGRES_PORT)
     username:         *"application" | string @timoni(runtime:string:POSTGRES_USERNAME)
     password:         *"application" | string @timoni(runtime:string:POSTGRES_PASSWORD)
     database:         *"application" | string @timoni(runtime:string:POSTGRES_DATABASE)
