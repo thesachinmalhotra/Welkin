@@ -34,6 +34,10 @@ openmeterValues: {
     notificationService: {
       replicaCount: 0
     }
+    // ponytail: single-node Kafka for CI — cuts ~400MB RAM vs default 3 replicas
+    kafka: {
+      replicaCount: 1
+    }
     config: {
       postgres: {
         // External-Postgres endpoint (prod). Ignored in dev/cert, where the

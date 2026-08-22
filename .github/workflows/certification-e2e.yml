@@ -15,7 +15,7 @@ env:
   REGISTRY: ghcr.io
   ARTIFACT: oci://ghcr.io/${{ github.repository_owner }}/welkin
   # Synthetic certification credentials, isolated to CI Environment State.
-  # They are only ever written into the ephemeral kind cluster as a Secret
+  # They are only ever written into the ephemeral k3s cluster as a Secret
   # for the duration of this run; they are not production defaults.
   OPENMETER_TOKEN: "test-token-${{ github.sha }}"
   ARCHIVE_S3_ACCESS_KEY_ID: "minio"
@@ -49,23 +49,16 @@ jobs:
       - name: Add Timoni to PATH
         run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-      - name: Install kind
-        run: |
-          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
-          chmod +x ./kind
-          sudo mv ./kind /usr/local/bin/kind
-
-      - name: Install kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x ./kubectl
-          sudo mv ./kubectl /usr/local/bin/kubectl
+      - name: Setup k3s
+        id: k3s
+        uses: fenio/setup-k3s@v2
+        with:
+          k3s-args: '--write-kubeconfig-mode 644'
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | timoni registry login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-
-      - name: Create kind cluster
-        run: kind create cluster --name "${{ env.CLUSTER_NAME }}"
+        env:
+          KUBECONFIG: ${{ steps.k3s.outputs.kubeconfig }}
 
       - name: Push OCI artifact once and capture immutable digest
         run: |
@@ -106,6 +99,8 @@ jobs:
             --wait=false
 
       - name: Wait for OpenMeter and collector pods
+        env:
+          KUBECONFIG: ${{ steps.k3s.outputs.kubeconfig }}
         run: |
           set -x
           DEADLINE=$(( $(date +%s) + DEPLOY_TIMEOUT_SEC ))
@@ -127,6 +122,8 @@ jobs:
           wait_pod "app.kubernetes.io/name=benthos-collector"
 
       - name: Create archive credentials secret (CI Environment State only)
+        env:
+          KUBECONFIG: ${{ steps.k3s.outputs.kubeconfig }}
         run: |
           kubectl create secret generic welkin-archive-credentials \
             --namespace=welkin-system \
@@ -134,6 +131,8 @@ jobs:
             --from-literal=secretAccessKey="${ARCHIVE_S3_SECRET_ACCESS_KEY}"
 
       - name: Run certification Job
+        env:
+          KUBECONFIG: ${{ steps.k3s.outputs.kubeconfig }}
         run: |
           kubectl apply -f dist/flux/certification/certification-job.yaml
           kubectl wait --namespace=welkin-system \
@@ -143,6 +142,8 @@ jobs:
 
       - name: Collect evidence
         if: always()
+        env:
+          KUBECONFIG: ${{ steps.k3s.outputs.kubeconfig }}
         run: |
           mkdir -p "${EVIDENCE_DIR}"
           STATUS=$(kubectl get job/welkin-certification -n welkin-system \
@@ -177,20 +178,6 @@ jobs:
           path: /tmp/welkin-evidence/**
           retention-days: 7
           if-no-files-found: warn
-
-      - name: Destroy kind cluster
-        if: always()
-        run: kind delete cluster "${{ env.CLUSTER_NAME }}"
-
-      - name: Verify cluster destroyed
-        if: always()
-        run: |
-          if kind get clusters | grep -q "${{ env.CLUSTER_NAME }}"; then
-            echo "WARNING: cluster still exists"
-            kind get clusters
-            exit 1
-          fi
-          echo "Cluster successfully destroyed"
 
       - name: Summarize E2E result
         if: always()
