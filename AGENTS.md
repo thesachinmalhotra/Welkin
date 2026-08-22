@@ -240,6 +240,8 @@ These are non-negotiable unless an explicit architectural decision changes them:
 12. Do not introduce infrastructure merely because building it is convenient.
 13. Do not redesign established architecture to solve a local implementation inconvenience.
 14. Do not silently expand scope.
+15. Welkin owns no security or runtime mechanism — every concern maps to a
+    native upstream owner (see the concern→owner table in docs/architecture.md).
 
 ---
 

@@ -62,6 +62,33 @@ Welkin does not own:
 
 This is correct because Welkin is a **substrate**, not a platform. The governing rule prevents scope creep into areas where upstream systems are already authoritative.
 
+### Concern → native owner
+
+Welkin owns **no security mechanism and no runtime behavior of its own**. Every
+concern maps to a native upstream owner; Welkin only configures the composition.
+When evaluating any new concern, first ask: *which native system already owns
+this?* If the answer requires Welkin-specific machinery, the design is wrong.
+
+| Concern | Native owner |
+|---|---|
+| Action immutability | GitHub Actions policy |
+| CI identity | GitHub OIDC |
+| Artifact signing | Cosign / Sigstore |
+| Artifact identity | OCI digest |
+| Deployment | Timoni + Flux |
+| Kubernetes authorization | Kubernetes RBAC |
+| Network isolation | Kubernetes NetworkPolicy |
+| Secret storage | Kubernetes / external-secret ecosystem |
+| Secret injection | Timoni Runtime |
+| HTTP TLS/auth | Redpanda Connect / upstream collector |
+| Rate limiting | Redpanda Connect / Gateway ecosystem |
+| Event validation | Collector + CUE contract |
+| Event buffering | Collector |
+| Metering | OpenMeter |
+| Economic persistence | Postgres/ClickHouse as required by OpenMeter |
+| Archive | S3-compatible storage |
+| Reconciliation | Flux |
+
 ## Production Path
 
 The Timoni bundle and Helm chart are **dev-only**. Upstream does not support Helm as a production deployment path for OpenMeter.

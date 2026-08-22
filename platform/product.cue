@@ -16,7 +16,10 @@ product: {
   }
 
   // Derived from the collector chart version — single source, no drift.
-  collectorImage: "ghcr.io/openmeterio/benthos-collector:v\(charts.collectorVersion)"
+  collectorImage: {
+    repository: "ghcr.io/openmeterio/benthos-collector"
+    tag:        "v\(charts.collectorVersion)"
+  }
 
   // Archive plane semantics (product defaults, not environment knobs).
   archive: {
