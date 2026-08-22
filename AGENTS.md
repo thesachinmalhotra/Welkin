@@ -1,5 +1,12 @@
 # Welkin — Agent Context
 
+## North Star
+
+**Read and obey [`NORTHSTAR.md`](NORTHSTAR.md) before any work.**
+It defines the composition-first rule, the non-negotiables, and the gate
+discipline that override implementation preferences. When in doubt: compose,
+don't build — and prove it at runtime, don't assume it.
+
 ## Identity
 
 Welkin is a composition-first, cloud-native usage substrate for usage-based systems.
