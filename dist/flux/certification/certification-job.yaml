@@ -16,10 +16,76 @@ spec:
     spec:
       restartPolicy: Never
       serviceAccountName: welkin-certification
+      volumes:
+        - name: archive-evidence
+          emptyDir: {}
+      initContainers:
+        - name: archive-verify
+          image: minio/mc:RELEASE.2024-08-17T19-52-30Z
+          command: ["/bin/sh", "-c"]
+          env:
+            - name: MINIO_ENDPOINT
+              value: "http://minio:9000"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: welkin-archive-credentials
+                  key: accessKeyId
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: welkin-archive-credentials
+                  key: secretAccessKey
+            - name: BUCKET
+              value: "welkin-archive"
+            - name: EVENT_ID
+              value: "certification-$(date +%s)"
+          args:
+            - |
+              set -e
+              echo "--- Archive Verification (initContainer) ---"
+              echo "Waiting for main container to post event..."
+              # Wait for main container to signal event posted
+              while [ ! -f /shared/event_posted ]; do
+                sleep 1
+              done
+              
+              # Setup mc alias with credentials
+              mc alias set minio $MINIO_ENDPOINT $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+              
+              echo "--- Searching for parquet objects with EVENT_ID ---"
+              # Find parquet objects under events/ prefix
+              # The collector writes to events/<timestamp>-<uuid>.parquet
+              # We need to find the object containing our EVENT_ID
+              
+              # List all objects in events/ prefix
+              mc ls --recursive minio/welkin-archive/events/ | grep '\.parquet$' | while read -r line; do
+                obj=$(echo "$line" | awk '{print $NF}')
+                echo "Found parquet: $obj"
+                # Download to shared volume
+                mc cp "minio/welkin-archive/$obj" /shared/
+              done
+              
+              echo "Archive verification initContainer complete"
+              touch /shared/archive_verified
       containers:
         - name: certify
           image: curlimages/curl:8.5.0
           command: ["/bin/sh", "-c"]
+          volumeMounts:
+            - name: archive-evidence
+              mountPath: /shared
+          env:
+            - name: ARCHIVE_S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: welkin-archive-credentials
+                  key: accessKeyId
+            - name: ARCHIVE_S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: welkin-archive-credentials
+                  key: secretAccessKey
           args:
             - |
               set -e
@@ -59,6 +125,9 @@ spec:
                 exit 1
               fi
               
+              # Signal event posted
+              touch /shared/event_posted
+              
               # 2. Wait for processing
               echo "--- Waiting 15s for event processing ---"
               sleep 15
@@ -78,14 +147,31 @@ spec:
               fi
               echo "openmeter_assertion: $OPENMETER_OK"
               
-              # 4. Check MinIO for parquet files (ARCHIVE PLANE - INFORMATIONAL)
-              echo "--- Checking MinIO for parquet files ---"
+              # Wait for archive verification to complete
+              echo "--- Waiting for archive verification ---"
+              while [ ! -f /shared/archive_verified ]; do
+                sleep 1
+              done
+              
+              # 4. Archive verification with duckdb (ECONOMIC PLANE - INFORMATIONAL)
+              echo "--- Verifying Parquet content with duckdb ---"
               MINIO_OK="false"
-              MC_RESPONSE=$(curl -s "${MINIO}/${BUCKET}?list-type=2" 2>/dev/null || echo "")
-              echo "MinIO response: $(echo "$MC_RESPONSE" | head -20)"
-              if echo "$MC_RESPONSE" | grep -qi "parquet\|\.parquet"; then
-                MINIO_OK="true"
-              fi
+              
+              # Install duckdb if needed
+              apk add --no-cache duckdb >/dev/null 2>&1 || true
+              
+              for f in /shared/*.parquet; do
+                if [ -f "$f" ]; then
+                  echo "Checking parquet: $f"
+                  # Query parquet for EVENT_ID in id column
+                  if duckdb -c "SELECT 1 FROM read_parquet('$f') WHERE id = '$EVENT_ID' LIMIT 1" 2>/dev/null | grep -q "1"; then
+                    echo "SUCCESS: Found EVENT_ID $EVENT_ID in $f"
+                    MINIO_OK="true"
+                    break
+                  fi
+                fi
+              done
+              
               echo "parquet_assertion: $MINIO_OK"
               
               # 5. Summary

@@ -124,13 +124,12 @@ jobs:
           wait_pod "app.kubernetes.io/name=openmeter-api"
           wait_pod "app.kubernetes.io/name=benthos-collector"
 
-      - name: Create certification secret (CI Environment State only)
+      - name: Create archive credentials secret (CI Environment State only)
         run: |
-          kubectl create secret generic welkin-collector-secrets \
+          kubectl create secret generic welkin-archive-credentials \
             --namespace=welkin-system \
-            --from-literal=OPENMETER_TOKEN="${OPENMETER_TOKEN}" \
-            --from-literal=ARCHIVE_S3_ACCESS_KEY_ID="${ARCHIVE_S3_ACCESS_KEY_ID}" \
-            --from-literal=ARCHIVE_S3_SECRET_ACCESS_KEY="${ARCHIVE_S3_SECRET_ACCESS_KEY}"
+            --from-literal=accessKeyId="${ARCHIVE_S3_ACCESS_KEY_ID}" \
+            --from-literal=secretAccessKey="${ARCHIVE_S3_SECRET_ACCESS_KEY}"
 
       - name: Run certification Job
         run: |
