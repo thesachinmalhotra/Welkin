@@ -12,6 +12,7 @@ permissions:
   packages: write
 
 env:
+  REGISTRY: ghcr.io
   ARTIFACT: oci://ghcr.io/${{ github.repository_owner }}/welkin
   # Synthetic certification credentials, isolated to CI Environment State.
   # They are only ever written into the ephemeral kind cluster as a Secret
@@ -93,11 +94,12 @@ jobs:
           }
           EOF
           timoni bundle apply \
-            -f platform/bundles/welkin.bundle.cue \
+            -f platform/bundles/welkin-dev.bundle.cue \
+            -f platform/product.cue \
             -f platform/runtime/welkin.runtime.cue \
+            -f spec/meters/meters.cue \
             -f platform/collector/collector.cue \
             -f platform/economic/openmeter.cue \
-            -f platform/economic/postgres.cue \
             -f platform/archive/minio.cue \
             -f /tmp/welkin.runtime.overlay.cue \
             --runtime-from-env \
