@@ -55,6 +55,13 @@ collectorValues: {
           }
           processors: [
             {
+              metric: {
+                type:  "counter"
+                name:  "openmeter_event_received"
+                value: "1"
+              }
+            },
+            {
               label: "validation"
               json_schema: {
                 schema_path: "file:///etc/benthos/cloudevents.spec.json"
@@ -63,8 +70,9 @@ collectorValues: {
             {
               catch: [{
                 log: {
-                  level:   "ERROR"
-                  message: "schema validation failed due to: ${!error()}"
+                  level:          "ERROR"
+                  message:        "schema validation failed due to: ${!error()}"
+                  fields_mapping: "root = this"
                 }
               }, {
                 mapping: """
@@ -80,6 +88,8 @@ collectorValues: {
                   """
               }, {
                 sync_response: {}
+              }, {
+                mapping: "root = deleted()"
               }]
             },
             {
@@ -110,12 +120,39 @@ collectorValues: {
               check:    ""
               continue: true
               output: {
-                openmeter: {
-                  url:   runtime.openmeter.url
-                  token: runtime.openmeter.token
-                  batching: {
-                    count:  100
-                    period: "1s"
+                label: "openmeter"
+                drop_on: {
+                  error:          false
+                  error_patterns: ["Bad Request"]
+                  output: {
+                    http_client: {
+                      url:  "\(runtime.openmeter.url)/api/v1/events"
+                      verb: "POST"
+                      headers: {
+                        Authorization: "Bearer \(runtime.openmeter.token)"
+                        "Content-Type": "application/json"
+                      }
+                      timeout:            "30s"
+                      retry_period:       "15s"
+                      retries:            3
+                      max_retry_backoff:  "1m"
+                      max_in_flight:      64
+                      batch_as_multipart: false
+                      drop_on: [400]
+                      batching: {
+                        count:  100
+                        period: "1s"
+                        processors: [{
+                          metric: {
+                            type:  "counter"
+                            name:  "openmeter_events_sent"
+                            value: "1"
+                          }
+                        }, {
+                          archive: {format: "json_array"}
+                        }]
+                      }
+                    }
                   }
                 }
               }
@@ -168,6 +205,12 @@ collectorValues: {
               output: {stdout: {codec: "lines"}}
             },
           ]
+        }
+      }
+
+      metrics: {
+        prometheus: {
+          add_process_metrics: true
         }
       }
     }
