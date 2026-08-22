@@ -26,15 +26,15 @@ jobs:
       digest: ${{ steps.push.outputs.digest }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup Timoni
-        uses: stefanprodan/timoni/actions/setup@main
+        uses: stefanprodan/timoni/actions/setup@a27f0e668232cc9b544713c72550c6480933a7e0 # main
         with:
           version: ${{ env.TIMONI_VERSION }}
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -73,7 +73,7 @@ jobs:
       id-token: write
     steps:
       - name: Setup Cosign
-        uses: sigstore/cosign-installer@main
+        uses: sigstore/cosign-installer@874852de93c66509b01dc7cd80f7a5385182d017 # main
 
       - name: Sign artifact
         run: |
