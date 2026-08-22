@@ -117,97 +117,89 @@ collectorValues: {
         }
       }
 
+      // Fan-out to economic + archive via broker.
+      // Each output is wrapped with drop_on so failures are independent —
+      // S3 back-pressure never blocks OpenMeter and vice-versa.
       output: {
-        switch: {
-          cases: [
+        label: "collector"
+        broker: {
+          pattern: "fan_out"
+          outputs: [
             {
-              check:    ""
-              continue: true
-              output: {
-                label: "openmeter"
-                drop_on: {
-                  error:          false
-                  error_patterns: ["Bad Request"]
-                  output: {
-                    http_client: {
-                      url:  "\(runtime.openmeter.url)/api/v1/events"
-                      verb: "POST"
-                      headers: {
-                        Authorization: "Bearer \(runtime.openmeter.token)"
-                        "Content-Type": "application/json"
-                      }
-                      timeout:            "30s"
-                      retry_period:       "15s"
-                      retries:            3
-                      max_retry_backoff:  "1m"
-                      max_in_flight:      64
-                      batch_as_multipart: false
-                      drop_on: [400]
-                      batching: {
-                        count:  100
-                        period: "1s"
-                        processors: [{
-                          metric: {
-                            type:  "counter"
-                            name:  "openmeter_events_sent"
-                            value: "1"
-                          }
-                        }, {
-                          archive: {format: "json_array"}
-                        }]
-                      }
+              label: "openmeter"
+              drop_on: {
+                error:          false
+                error_patterns: ["Bad Request"]
+                output: {
+                  http_client: {
+                    url:  "\(runtime.openmeter.url)/api/v1/events"
+                    verb: "POST"
+                    headers: {
+                      Authorization: "Bearer \(runtime.openmeter.token)"
+                      "Content-Type": "application/json"
+                    }
+                    timeout:            "30s"
+                    retry_period:       "15s"
+                    retries:            3
+                    max_retry_backoff:  "1m"
+                    max_in_flight:      64
+                    batch_as_multipart: false
+                    drop_on: [400]
+                    batching: {
+                      count:  100
+                      period: "1s"
+                      processors: [{
+                        metric: {
+                          type:  "counter"
+                          name:  "openmeter_events_sent"
+                          value: "1"
+                        }
+                      }, {
+                        archive: {format: "json_array"}
+                      }]
                     }
                   }
                 }
               }
             },
             {
-              check:    ""
-              continue: true
-              output: {
-                drop_on: {
-                  error:        true
-                  back_pressure: "10s"
-                  output: {
-                    aws_s3: {
-                      bucket:               runtime.archive.bucket
-                      path:                 "events/${!timestamp_unix()}-${!uuid_v4()}.parquet"
-                      endpoint:             runtime.archive.endpoint
-                      force_path_style_urls: runtime.archive.forcePathStyle
-                      region:               runtime.archive.region
-                      credentials: {
-                        id:     runtime.archive.accessKeyId
-                        secret: runtime.archive.secretAccessKey
-                      }
-                      max_in_flight: 1
-                      batching: {
-                        count:  product.archive.batchCount
-                        period: product.archive.batchPeriod
-                        // Archive subset of CloudEvent — 7 fields, not full spec.
-                        processors: [{
-                          parquet_encode: {
-                            schema: [
-                              {name: "id",          type: "UTF8"},
-                              {name: "specversion", type: "UTF8"},
-                              {name: "type",        type: "UTF8"},
-                              {name: "source",      type: "UTF8"},
-                              {name: "time",        type: "TIMESTAMP"},
-                              {name: "subject",     type: "UTF8"},
-                              {name: "data",        type: "BYTE_ARRAY"},
-                            ]
-                            default_compression:   "zstd"
-                            default_timestamp_unit: "MICROSECOND"
-                          }
-                        }]
-                      }
+              drop_on: {
+                error:         true
+                back_pressure: "10s"
+                output: {
+                  aws_s3: {
+                    bucket:               runtime.archive.bucket
+                    path:                 "events/${!timestamp_unix()}-${!uuid_v4()}.parquet"
+                    endpoint:             runtime.archive.endpoint
+                    force_path_style_urls: runtime.archive.forcePathStyle
+                    region:               runtime.archive.region
+                    credentials: {
+                      id:     runtime.archive.accessKeyId
+                      secret: runtime.archive.secretAccessKey
+                    }
+                    max_in_flight: 1
+                    batching: {
+                      count:  product.archive.batchCount
+                      period: product.archive.batchPeriod
+                      processors: [{
+                        parquet_encode: {
+                          schema: [
+                            {name: "id",          type: "UTF8"},
+                            {name: "specversion", type: "UTF8"},
+                            {name: "type",        type: "UTF8"},
+                            {name: "source",      type: "UTF8"},
+                            {name: "time",        type: "TIMESTAMP"},
+                            {name: "subject",     type: "UTF8"},
+                            {name: "data",        type: "BYTE_ARRAY"},
+                          ]
+                          default_compression:   "zstd"
+                          default_timestamp_unit: "MICROSECOND"
+                        }
+                      }]
                     }
                   }
                 }
               }
-            },
-            {
-              check:  "\"${DEBUG:false}\" == \"true\""
-              output: {stdout: {codec: "lines"}}
             },
           ]
         }
